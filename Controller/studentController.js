@@ -63,7 +63,7 @@ exports.studentlogin=async(req,res)=>{
          res.status(200).json({
             statusCode:200,
             message:'Login Sucessfully',
-            
+            students:result.rows[0]
          })
     }catch(error){
         console.error(error)

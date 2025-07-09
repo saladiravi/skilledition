@@ -66,7 +66,8 @@ exports.tutorlogin=async(req,res)=>{
        }
        res.status(200).json({
         statusCode:200,
-        message:'Login Sucessfully'
+        message:'Login Sucessfully',
+        tutor:result.rows[0]
        })
     }catch(error){
         res.status(500).json({
