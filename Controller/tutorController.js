@@ -96,3 +96,57 @@ exports.getTutors=async(req,res)=>{
         })
     }
 }
+
+exports.updateTutor = async (req, res) => {
+    const { tutor_id } = req.body;
+    const { name, email, phnumber, qualification, designation, address, password } = req.body;
+
+    try {
+        if (!tutor_id) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: 'Tutor  is required'
+            });
+        }
+
+        // Check if tutor exists
+        const tutor = await pool.query('SELECT * FROM tbl_tutor WHERE tutor_id = $1', [tutor_id]);
+        if (tutor.rows.length === 0) {
+            return res.status(404).json({
+                statusCode: 404,
+                message: 'Tutor not found'
+            });
+        }
+
+        // If password is provided, hash it; else keep existing
+        let hashedPassword = tutor.rows[0].password;
+        if (password) {
+            hashedPassword = await bycrypt.hash(password, 10);
+        }
+
+        await pool.query(
+            `UPDATE tbl_tutor SET 
+                name = $1,
+                email = $2,
+                phnumber = $3,
+                qualification = $4,
+                designation = $5,
+                address = $6,
+                password = $7
+             WHERE tutor_id = $8`,
+            [name, email, phnumber, qualification, designation, address, hashedPassword, tutor_id]
+        );
+
+        res.status(200).json({
+            statusCode: 200,
+            message: 'Tutor updated successfully'
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            statusCode: 500,
+            message: 'Internal Server Error'
+        });
+    }
+};

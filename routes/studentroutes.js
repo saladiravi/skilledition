@@ -5,7 +5,8 @@ const studentController=require('../Controller/studentController');
 
 routes.post('/StudentRegister',studentController.studentRegister);
 routes.post('/studentlogin',studentController.studentlogin);
- routes.get('/getAllstudents',studentController.getallstudents);
+routes.get('/getAllstudents',studentController.getallstudents);
+routes.post('/updatestudents',studentController.updateStudent);
 
 
 
