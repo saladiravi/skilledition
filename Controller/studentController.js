@@ -22,7 +22,7 @@ exports.studentRegister=async(req,res)=>{
        const hashedPassword= await  bycrypt.hash(password,10);
        await pool.query(
         'INSERT INTO public.tbl_student (first_name ,last_name,phnumber,email,gender ,date_of_birth,qualification,college,pass_out_year,address,pincode,password,role_type) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
-        [first_name ,last_name,phnumber,email,gender ,date_of_birth,qualification,college,pass_out_year,address,pincode,hashedPassword,'Student']
+        [first_name ,last_name,phnumber,email,gender ,date_of_birth,qualification,college,pass_out_year,address,pincode,hashedPassword,'student']
        )
        res.status(200).json({
         statusCode:200,
@@ -109,7 +109,7 @@ exports.updateStudent = async (req, res) => {
                 statusCode: 400,
                 message: 'Student  is required'
             });
-        }
+        } 
 
         // Check if student exists
         const existingStudent = await pool.query('SELECT * FROM tbl_student WHERE student_id = $1', [student_id]);

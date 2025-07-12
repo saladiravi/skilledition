@@ -23,7 +23,7 @@ exports.adminLogin = async (req, res) => {
         } 
 
         
-        res.status(200).json({ statusCode: 200,message: 'Login successful', admin: { id: admin.adminid, email: admin.email,role_type:admin.role_type} });
+        res.status(200).json({ statusCode: 200,message: 'Login successful', admin: { admin_id: admin.admin_id, email: admin.email,role_type:admin.role_type} });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });

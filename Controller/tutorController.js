@@ -23,7 +23,7 @@ exports.addtutor=async(req,res)=>{
          const hashedPassword=await bycrypt.hash(password,10);
          await pool.query(
             'INSERT INTO public.tbl_tutor (name ,email, phnumber, qualification, designation ,address, password,role_type) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
-            [name ,email, phnumber, qualification, designation ,address,hashedPassword ,'Tutor']
+            [name ,email, phnumber, qualification, designation ,address,hashedPassword ,'tutor']
          )
          res.status(200).json({
             statusCode:200,
@@ -31,7 +31,7 @@ exports.addtutor=async(req,res)=>{
           
         })
     }catch(error){ 
-        console.error(error)
+         
         res.status(500).json({
             statusCode:500,
             message:'Internal Server Error'
@@ -66,7 +66,7 @@ exports.tutorlogin=async(req,res)=>{
        }
        res.status(200).json({
         statusCode:200,
-        message:'Login Sucessfully',
+        message:'Tutor Login Sucessfully',
         tutor:result.rows[0]
        })
     }catch(error){
