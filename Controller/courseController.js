@@ -302,3 +302,68 @@ exports.deleteCourse = async (req, res) => {
     client.release();
   }
 };
+
+
+exports.getCourseById = async (req, res) => {
+  try {
+    const { course_id } = req.body;
+
+    const query = `
+      SELECT 
+        tc.course_id,
+        tc.course_image,
+        tc.course_title,
+        tc.course_type,
+        tc.course_description,
+        tc.course_price,
+        tc.tutor_id,
+        t.name AS tutor_name,
+        tvc.course_video_title,
+        tvc.course_video,
+        tvc.duration
+      FROM tbl_course tc
+      INNER JOIN tbl_course_videos tvc ON tc.course_id = tvc.course_id
+      LEFT JOIN tbl_tutor t ON tc.tutor_id = t.tutor_id
+      WHERE tc.course_id = $1
+      ORDER BY tvc.course_video_id;
+    `;
+
+    const result = await pool.query(query, [course_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: 'Course not found'
+      });
+    }
+
+    const row = result.rows[0];
+
+    const course = {
+      course_id: row.course_id,
+      course_image: row.course_image,
+      course_title: row.course_title,
+      course_type: row.course_type,
+      course_description: row.course_description,
+      course_price: row.course_price,
+      tutor: {
+        tutor_id: row.tutor_id,
+        tutor_name: row.tutor_name
+      },
+      videos: result.rows.map(video => ({
+        course_video_title: video.course_video_title,
+        course_video: video.course_video,
+        duration: video.duration
+      }))
+    };
+
+    res.json(course);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      statusCode: 500,
+      message: 'Internal Server Error'
+    });
+  }
+};
