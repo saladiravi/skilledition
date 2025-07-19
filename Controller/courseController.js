@@ -67,12 +67,17 @@ exports.addCourseWithVideos = async (req, res) => {
     }
 
     await client.query('COMMIT');
-    res.status(200).json({ message: 'Course Added Sucessully' });
+    res.status(200).json({ 
+      statusCode:200,
+      message: 'Course Added Sucessully'
+     });
 
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ message: err.message || 'Internal Server Error' });
+    res.status(500).json({ 
+      statusCode:500,
+      message: err.message || 'Internal Server Error' });
   } finally {
     client.release();
   }
@@ -134,7 +139,11 @@ exports.getCourses = async (req, res) => {
 
     const courses = Object.values(coursesMap);
 
-    res.json(courses);
+    res.json({
+      statusCode:200,
+      message:'Course Fetched Sucessfully',
+      course :courses
+    });
 
   } catch (error) {
     console.error(error);
@@ -233,13 +242,14 @@ exports.updateCourseWithVideos = async (req, res) => {
     await client.query('COMMIT');
     res.status(200).json({
       statusCode: 200,
-      message: 'Course and videos updated successfully'
+      message: 'Courses updated successfully'
     });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({
-      status: 'error',
+      statusCode:500,
+       
       message: err.message || 'Internal Server Error'
     });
   } finally {
@@ -289,7 +299,7 @@ exports.deleteCourse = async (req, res) => {
 
     res.status(200).json({
       statusCode: 200,
-      message: 'Course and related videos deleted successfully',
+      message: 'Courses deleted successfully',
     });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -357,7 +367,11 @@ exports.getCourseById = async (req, res) => {
       }))
     };
 
-    res.json(course);
+    res.json({
+      statusCode:200,
+      message:'Courses Fetched Sucessfully',
+      course: course
+    });
 
   } catch (error) {
     console.error(error);
