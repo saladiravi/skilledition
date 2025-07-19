@@ -18,10 +18,10 @@ exports.addCourseWithVideos = async (req, res) => {
     course_description,
     course_price,
     tutor_id,
-    video_metadata
+    course_video_title
   } = req.body;
 
-  const videos = JSON.parse(video_metadata);
+  const videos = JSON.parse(course_video_title);
   const client = await pool.connect();
 
   try {
@@ -164,7 +164,7 @@ exports.updateCourseWithVideos = async (req, res) => {
     course_description,
     course_price,
     tutor_id,
-    video_metadata,
+    course_video_title,
   } = req.body;
 
   if (!course_id) {
@@ -176,7 +176,7 @@ exports.updateCourseWithVideos = async (req, res) => {
 
   let videos = [];
   try {
-    videos = JSON.parse(video_metadata);
+    videos = JSON.parse(course_video_title);
   } catch (err) {
     console.error("JSON parse error:", err);
     return res.status(400).json({
