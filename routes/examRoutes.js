@@ -3,9 +3,10 @@ const routes=express.Router();
 const exmcontroller=require('../Controller/examController');
 
 routes.post('/addExam',exmcontroller.addExam);
-routes.get('/getExams',exmcontroller.getExams);
-routes.post('/deletExam',exmcontroller.deleteExam);
+routes.get('/getallExams',exmcontroller.getAllExams);
+routes.post('/deleteExam',exmcontroller.deleteExam);
 routes.post('/updateExam',exmcontroller.updateExam);
+routes.post('/getexambyid',exmcontroller.getExamById);
 
 
 

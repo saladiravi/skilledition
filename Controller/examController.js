@@ -1,103 +1,225 @@
 const pool=require('../db/db');
  
 
+ 
 exports.addExam = async (req, res) => {
-  const { course_id, course_video_id, questions } = req.body;
+  const { course_id, course_video_id, tutor_id, questions } = req.body;
 
   if (!course_id || !questions || !Array.isArray(questions)) {
-    return res.status(400).json({ message: "course_id and questions array are required" });
+    return res.status(400).json({ message: "Invalid data. course_id and questions are required." });
   }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    for (let q of questions) {
-      await client.query(
-        `INSERT INTO tbl_exam 
-         (course_id, course_video_id, question, a, b, c, d, answer)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          course_id,
-          course_video_id || null,
-          q.question,
-          q.a,
-          q.b,
-          q.c,
-          q.d,
-          q.answer
-        ]
-      );
+    const insertExamQuery = `
+      INSERT INTO tbl_exam (course_id, course_video_id, tutor_id)
+      VALUES ($1, $2, $3)
+      RETURNING exam_id
+    `;
+    const examResult = await client.query(insertExamQuery, [course_id, course_video_id, tutor_id]);
+    const exam_id = examResult.rows[0].exam_id;
+
+    const insertQuestionQuery = `
+      INSERT INTO tbl_exam_question (question, a, b, c, d, answer, exam_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `;
+
+    for (const q of questions) {
+      const { question, a, b, c, d, answer } = q;
+      await client.query(insertQuestionQuery, [question, a, b, c, d, answer, exam_id]);
     }
 
     await client.query('COMMIT');
-    res.status(200).json({ message: "Exam questions added successfully" });
+    res.status(200).json({ 
+      statusCode:200,
+      message: "Exam and questions added successfully", exam_id
+     });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error("Error inserting exam:", error);
+    res.status(500).json({ 
+      statusCode:500,
+      message: "Server error" 
+    });
+  } finally {
+    client.release();
+  }
+};
+
+ 
+
+exports.getAllExams = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        e.exam_id,
+        e.course_id,
+        c.course_title,
+        c.course_type,
+        c.course_image,
+        e.course_video_id,
+        v.course_video_title,
+        v.course_video,
+        v.duration,
+        e.tutor_id,
+        t.name AS tutor_name,
+        t.email AS tutor_email
+      FROM tbl_exam e
+      JOIN tbl_course c ON e.course_id = c.course_id
+      JOIN tbl_course_videos v ON e.course_video_id = v.course_video_id
+      JOIN tbl_tutor t ON e.tutor_id = t.tutor_id
+    `;
+
+    const result = await pool.query(query);
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error("Error fetching exams:", err);
+    res.status(500).json({ message: "Failed to fetch exams" });
+  }
+};
+
+ 
+ 
+exports.updateExam = async (req, res) => {
+  const { exam_id } = req.body;
+  const { course_id, course_video_id, tutor_id, questions } = req.body;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+     
+    await client.query(
+      `UPDATE tbl_exam 
+       SET course_id = $1, course_video_id = $2, tutor_id = $3 
+       WHERE exam_id = $4`,
+      [course_id, course_video_id, tutor_id, exam_id]
+    );
+
+  
+    await client.query(`DELETE FROM tbl_exam_question WHERE exam_id = $1`, [exam_id]);
+
+   
+    const insertQuestionQuery = `
+      INSERT INTO tbl_exam_question (question, a, b, c, d, answer, exam_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `;
+
+    for (const q of questions) {
+      const { question, a, b, c, d, answer } = q;
+      await client.query(insertQuestionQuery, [question, a, b, c, d, answer, exam_id]);
+    }
+
+    await client.query('COMMIT');
+    res.json({ 
+      statusCode:200,
+      message: "Exam and questions updated successfully." });
+
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error(err);
-    res.status(500).json({ message: err.message || "Internal Server Error" });
+    console.error("Update error:", err);
+    res.status(500).json({ 
+      statusCode:500,
+      message: "Update failed." });
   } finally {
     client.release();
   }
 };
 
 
-exports.updateExam = async (req, res) => {
-  const { exam_id, question, a, b, c, d, answer } = req.body;
 
-  if (!exam_id) {
-    return res.status(400).json({ message: "exam_id is required" });
-  }
+ 
+exports.deleteExam = async (req, res) => {
+  const { exam_id } = req.body;
+  const client = await pool.connect();
 
   try {
-    await pool.query(
-      `UPDATE tbl_exam
-       SET question = $1, a = $2, b = $3, c = $4, d = $5, answer = $6
-       WHERE exam_id = $7`,
-      [question, a, b, c, d, answer, exam_id]
-    );
+    await client.query('BEGIN');
 
-    res.status(200).json({ message: "Exam question updated successfully" });
+     
+    await client.query(`DELETE FROM tbl_exam_question WHERE exam_id = $1`, [exam_id]);
+
+    
+    const result = await client.query(`DELETE FROM tbl_exam WHERE exam_id = $1`, [exam_id]);
+
+    await client.query('COMMIT');
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ 
+        statusCode:404,
+        message: "Exam not found" });
+    }
+
+    res.json({ 
+      statusCode:200,
+      message: "Exam and its questions deleted successfully." 
+     
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message || "Internal Server Error" });
+    await client.query('ROLLBACK');
+ 
+    res.status(500).json({ message: "Delete failed." });
+  } finally {
+    client.release();
   }
 };
 
 
-exports.deleteExam = async (req, res) => {
-  const { exam_id } = req.params;
+ 
 
-  if (!exam_id) {
-    return res.status(400).json({ message: "exam_id is required" });
-  }
+exports.getExamById = async (req, res) => {
+  const { exam_id } = req.body;
 
   try {
-    await pool.query(`DELETE FROM tbl_exam WHERE exam_id = $1`, [exam_id]);
-    res.status(200).json({ message: "Exam question deleted successfully" });
+    const examQuery = `
+      SELECT 
+        e.exam_id,
+        e.course_id,
+        c.course_title,
+        c.course_type,
+        c.course_image,
+        e.course_video_id,
+        v.course_video_title,
+        v.course_video,
+        v.duration,
+        e.tutor_id,
+        t.name AS tutor_name,
+        t.email AS tutor_email
+      FROM tbl_exam e
+      JOIN tbl_course c ON e.course_id = c.course_id
+      JOIN tbl_course_videos v ON e.course_video_id = v.course_video_id
+      JOIN tbl_tutor t ON e.tutor_id = t.tutor_id
+      WHERE e.exam_id = $1
+    `;
+
+    const examResult = await pool.query(examQuery, [exam_id]);
+
+    if (examResult.rowCount === 0) {
+      return res.status(404).json({ message: "Exam not found" });
+    }
+
+    const questionQuery = `
+      SELECT question_id, question, a, b, c, d, answer 
+      FROM tbl_exam_question 
+      WHERE exam_id = $1
+    `;
+    const questionResult = await pool.query(questionQuery, [exam_id]);
+
+    res.json({
+      exam: examResult.rows[0],
+      questions: questionResult.rows
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message || "Internal Server Error" });
+    console.error("Error fetching exam by ID:", err);
+    res.status(500).json({ message: "Failed to fetch exam" });
   }
 };
 
  
-exports.getExams = async (req, res) => {
-  const { course_id } = req.query;
-  
-  let query = `SELECT * FROM tbl_exam`;
-  let params = [];
-
-  if (course_id) {
-    query += ` WHERE course_id = $1`;
-    params.push(course_id);
-  }
-
-  try {
-    const result = await pool.query(query, params);
-    res.status(200).json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message || "Internal Server Error" });
-  }
-};
