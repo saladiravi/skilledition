@@ -54,7 +54,8 @@ exports.userLogin = async (req, res) => {
         user: {
           tutor_id: tutor.tutor_id,
           email: tutor.email,
-          name: tutor.name
+          name: tutor.name,
+          role_type:tutor.role_type
           // add more fields if needed
         }
       });
