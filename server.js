@@ -8,7 +8,7 @@ const courseRoutes=require('./routes/courseRoutes')
 const examRoutes=require('./routes/examRoutes');
 const studentCourseRoutes=require('./routes/studentcourseroutes');
 const studentwatchedvideos=require('./routes/studentwatchedvideosroutes');
-const login=require('./Controller/loginController');
+const login=require('./routes/loginroutes');
 
 const app = express();
 
