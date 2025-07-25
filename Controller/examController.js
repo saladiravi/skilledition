@@ -94,7 +94,17 @@ exports.updateExam = async (req, res) => {
   try {
     await client.query('BEGIN');
 
-     
+        // Step 1: Check if exam exists
+    const examCheck = await client.query(`SELECT 1 FROM tbl_exam WHERE exam_id = $1`, [exam_id]);
+
+    if (examCheck.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        statusCode: 404,
+        message: "  Exam not found."
+      });
+    }
+
     await client.query(
       `UPDATE tbl_exam 
        SET course_id = $1, course_video_id = $2, tutor_id = $3 ,exam_name=$4
