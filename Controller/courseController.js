@@ -102,7 +102,8 @@ exports.getCourses = async (req, res) => {
         t.name AS tutor_name,
         tvc.course_video_title,
         tvc.course_video,
-        tvc.duration
+        tvc.duration,
+        tvc.course_video_id
       FROM tbl_course tc
       INNER JOIN tbl_course_videos tvc ON tc.course_id = tvc.course_id
       LEFT JOIN tbl_tutor t ON tc.tutor_id = t.tutor_id
@@ -131,6 +132,7 @@ exports.getCourses = async (req, res) => {
         };
       }
       coursesMap[row.course_id].videos.push({
+        course_video_id:row.course_video_id,
         course_video_title: row.course_video_title,
         course_video: row.course_video,
         duration: row.duration
@@ -328,6 +330,7 @@ exports.getCourseById = async (req, res) => {
         tc.course_price,
         tc.tutor_id,
         t.name AS tutor_name,
+        tvc.course_video_id,
         tvc.course_video_title,
         tvc.course_video,
         tvc.duration
@@ -361,6 +364,7 @@ exports.getCourseById = async (req, res) => {
         tutor_name: row.tutor_name
       },
       videos: result.rows.map(video => ({
+        course_video_id:video.course_video_id,
         course_video_title: video.course_video_title,
         course_video: video.course_video,
         duration: video.duration

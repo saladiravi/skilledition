@@ -3,7 +3,7 @@ const pool=require('../db/db');
 
  
 exports.addExam = async (req, res) => {
-  const { course_id, course_video_id, tutor_id, questions } = req.body;
+  const { course_id, course_video_id, tutor_id,exam_name, questions } = req.body;
 
   if (!course_id || !questions || !Array.isArray(questions)) {
     return res.status(400).json({ message: "Invalid data. course_id and questions are required." });
@@ -14,11 +14,11 @@ exports.addExam = async (req, res) => {
     await client.query('BEGIN');
 
     const insertExamQuery = `
-      INSERT INTO tbl_exam (course_id, course_video_id, tutor_id)
-      VALUES ($1, $2, $3)
+      INSERT INTO tbl_exam (course_id, course_video_id, tutor_id,exam_name)
+      VALUES ($1, $2, $3,$4)
       RETURNING exam_id
     `;
-    const examResult = await client.query(insertExamQuery, [course_id, course_video_id, tutor_id]);
+    const examResult = await client.query(insertExamQuery, [course_id, course_video_id, tutor_id,exam_name]);
     const exam_id = examResult.rows[0].exam_id;
 
     const insertQuestionQuery = `
@@ -56,6 +56,7 @@ exports.getAllExams = async (req, res) => {
     const query = `
       SELECT 
         e.exam_id,
+        e.exam_name,
         e.course_id,
         c.course_title,
         c.course_type,
@@ -86,7 +87,7 @@ exports.getAllExams = async (req, res) => {
  
 exports.updateExam = async (req, res) => {
   const { exam_id } = req.body;
-  const { course_id, course_video_id, tutor_id, questions } = req.body;
+  const { course_id, course_video_id, tutor_id, exam_name,questions } = req.body;
 
   const client = await pool.connect();
 
@@ -96,9 +97,9 @@ exports.updateExam = async (req, res) => {
      
     await client.query(
       `UPDATE tbl_exam 
-       SET course_id = $1, course_video_id = $2, tutor_id = $3 
-       WHERE exam_id = $4`,
-      [course_id, course_video_id, tutor_id, exam_id]
+       SET course_id = $1, course_video_id = $2, tutor_id = $3 ,exam_name=$4
+       WHERE exam_id = $5`,
+      [course_id, course_video_id, tutor_id,exam_name, exam_id]
     );
 
   
@@ -180,6 +181,7 @@ exports.getExamById = async (req, res) => {
     const examQuery = `
       SELECT 
         e.exam_id,
+        e.exam_name,
         e.course_id,
         c.course_title,
         c.course_type,
