@@ -8,6 +8,6 @@ routes.post('/deleteExam',exmcontroller.deleteExam);
 routes.post('/updateExam',exmcontroller.updateExam);
 routes.post('/getexambyid',exmcontroller.getExamById);
 routes.post('/getexambycoursevideos',exmcontroller.getExamcoursecoursevideoById);
-
+routes.post('/getexambytutor',exmcontroller.getAllExamsbytutor)
 
 module.exports=routes;

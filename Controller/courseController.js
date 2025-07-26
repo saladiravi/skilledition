@@ -156,6 +156,84 @@ exports.getCourses = async (req, res) => {
   }
 };
 
+exports.getCoursesbytutor = async (req, res) => {
+  try {
+    const { tutor_id } = req.body;
+
+    if (!tutor_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: 'tutor_id is required'
+      });
+    }
+
+    const query = `
+      SELECT 
+        tc.course_id,
+        tc.course_image,
+        tc.course_title,
+        tc.course_type,
+        tc.course_description,
+        tc.course_price,
+        tc.tutor_id,
+        t.name AS tutor_name,
+        tvc.course_video_title,
+        tvc.course_video,
+        tvc.duration,
+        tvc.course_video_id
+      FROM tbl_course tc
+      INNER JOIN tbl_course_videos tvc ON tc.course_id = tvc.course_id
+      LEFT JOIN tbl_tutor t ON tc.tutor_id = t.tutor_id
+      WHERE tc.tutor_id = $1
+      ORDER BY tc.course_id;
+    `;
+
+    const result = await pool.query(query, [tutor_id]);
+
+    // Group videos under each course
+    const coursesMap = {};
+
+    for (let row of result.rows) {
+      if (!coursesMap[row.course_id]) {
+        coursesMap[row.course_id] = {
+          course_id: row.course_id,
+          course_image: row.course_image,
+          course_title: row.course_title,
+          course_type: row.course_type,
+          course_description: row.course_description,
+          course_price: row.course_price,
+          tutor: {
+            tutor_id: row.tutor_id,
+            tutor_name: row.tutor_name
+          },
+          videos: []
+        };
+      }
+
+      coursesMap[row.course_id].videos.push({
+        course_video_id: row.course_video_id,
+        course_video_title: row.course_video_title,
+        course_video: row.course_video,
+        duration: row.duration
+      });
+    }
+
+    const courses = Object.values(coursesMap);
+
+    res.json({
+      statusCode: 200,
+      message: 'Courses fetched successfully',
+      course: courses
+    });
+
+  } catch (error) {
+    console.error("Error fetching courses by tutor:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: 'Internal Server Error'
+    });
+  }
+};
 
 
 exports.updateCourseWithVideos = async (req, res) => {
