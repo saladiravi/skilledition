@@ -7,7 +7,7 @@ routes.get('/getallExams',exmcontroller.getAllExams);
 routes.post('/deleteExam',exmcontroller.deleteExam);
 routes.post('/updateExam',exmcontroller.updateExam);
 routes.post('/getexambyid',exmcontroller.getExamById);
-
+routes.post('/getexambycoursevideos',exmcontroller.getExamcoursecoursevideoById);
 
 
 module.exports=routes;
