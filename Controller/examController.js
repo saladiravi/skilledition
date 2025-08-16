@@ -130,7 +130,11 @@ exports.getAllExams = async (req, res) => {
     `;
 
     const result = await pool.query(query);
-    res.json(result.rows);
+    res.json({
+      statusCode:200,
+      message:'Exams Fetched Sucessfully',
+      result:result.rows
+  });
 
   } catch (err) {
     console.error("Error fetching exams:", err);
@@ -179,7 +183,11 @@ exports.getAllExamsbytutor = async (req, res) => {
     `;
 
     const result = await pool.query(query, [tutor_id]);
-    res.json(result.rows);
+    res.json({
+      statusCode:200,
+      message:'Fetched Sucessfully',
+      result:result.rows
+    });
 
   } catch (err) {
     console.error("Error fetching exams by tutor:", err);
@@ -329,6 +337,8 @@ exports.getExamById = async (req, res) => {
     const questionResult = await pool.query(questionQuery, [exam_id]);
 
     res.json({
+      statusCode:200,
+      message:'Fetched Sucessfully',
       exam: examResult.rows[0],
       questions: questionResult.rows
     });
@@ -387,6 +397,8 @@ exports.getExamcoursecoursevideoById = async (req, res) => {
     const questionResult = await pool.query(questionQuery, [exam.exam_id]);
 
     res.json({
+      statusCode:200,
+      message:'Fetched Sucessfully',
       exam,
       questions: questionResult.rows
     });
