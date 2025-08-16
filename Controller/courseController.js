@@ -14,7 +14,7 @@ function formatDuration(seconds) {
 exports.addCourseWithVideos = async (req, res) => {
   const {
     course_type,
-    course_title,
+    course_title,  
     course_description,
     course_price,
     tutor_id,
@@ -36,6 +36,19 @@ exports.addCourseWithVideos = async (req, res) => {
     }
 
     await client.query('BEGIN');
+
+    const existingCourse = await client.query(
+      `SELECT 1 FROM tbl_course WHERE LOWER(course_title) = LOWER($1)`,
+      [course_title]
+    );
+
+    if (existingCourse.rowCount > 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        statusCode: 400,
+        message: "A course with this title already exists."
+      });
+    }
 
     const courseResult = await client.query(
       `INSERT INTO tbl_course 

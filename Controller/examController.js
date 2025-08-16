@@ -18,7 +18,7 @@ exports.addExam = async (req, res) => {
       WHERE course_id = $1 AND course_video_id = $2
     `;
     const existsResult = await client.query(existsQuery, [course_id, course_video_id]);
-
+ 
     if (existsResult.rowCount > 0) {
       await client.query('ROLLBACK');
       return res.status(400).json({
