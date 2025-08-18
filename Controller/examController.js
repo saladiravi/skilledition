@@ -99,6 +99,7 @@ exports.addExam = async (req, res) => {
 
 exports.getAllExams = async (req, res) => {
   try {
+
     const query = `
       SELECT 
         e.exam_id,
@@ -142,6 +143,52 @@ exports.getAllExams = async (req, res) => {
   }
 };
 
+
+exports.getAllExam = async (req, res) => {
+  try {
+    
+    const query = `
+      SELECT 
+        e.exam_id,
+        e.exam_name,
+        e.course_id,
+        c.course_title,
+        c.course_type,
+        c.course_image,
+        e.tutor_id,
+        t.name AS tutor_name,
+        t.email AS tutor_email,
+        -- Aggregate all videos for the course
+        json_agg(
+          json_build_object(
+            'course_video_id', v.course_video_id,
+            'course_video_title', v.course_video_title,
+            'course_video', v.course_video,
+            'duration', v.duration
+          )
+        ) AS course_videos
+      FROM tbl_exam e
+      JOIN tbl_course c ON e.course_id = c.course_id
+      JOIN tbl_tutor t ON e.tutor_id = t.tutor_id
+     JOIN tbl_course_videos v ON v.course_video_id = e.course_video_id
+      GROUP BY 
+        e.exam_id, e.exam_name, e.course_id,
+        c.course_title, c.course_type, c.course_image,
+        e.tutor_id, t.name, t.email
+    `;
+
+    const result = await pool.query(query);
+    res.json({
+      statusCode:200,
+      message:'Exams Fetched Sucessfully',
+      result:result.rows
+  });
+
+  } catch (err) {
+    console.error("Error fetching exams:", err);
+    res.status(500).json({ message: "Failed to fetch exams" });
+  }
+};
 
 exports.getAllExamsbytutor = async (req, res) => {
   try {
@@ -211,7 +258,7 @@ exports.updateExam = async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(404).json({
         statusCode: 404,
-        message: "  Exam not found."
+        message: "Exam not found."
       });
     }
 
@@ -224,7 +271,7 @@ exports.updateExam = async (req, res) => {
 
 
     await client.query(`DELETE FROM tbl_exam_question WHERE exam_id = $1`, [exam_id]);
-
+  
 
     const insertQuestionQuery = `
       INSERT INTO tbl_exam_question (question, a, b, c, d, answer, exam_id)
