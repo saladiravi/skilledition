@@ -485,7 +485,44 @@ exports.deleteCourse = async (req, res) => {
   try {
     const { course_id } = req.body;
 
-    const query = `...above SQL...`;
+    const query = `SELECT 
+    tc.course_id,
+    tc.course_image,
+    tc.course_title,
+    tc.course_type,
+    tc.course_description,
+    tc.course_price,
+    tc.tutor_id,
+    t.name AS tutor_name,
+
+    tvc.course_video_id,
+    tvc.course_video_title,
+    tvc.course_video,
+    tvc.duration,
+
+    te.exam_id,
+    te.exam_name,
+
+    teq.question_id,
+    teq.question,
+    teq.a,
+    teq.b,
+    teq.c,
+    teq.d,
+    teq.answer
+
+FROM tbl_course tc
+INNER JOIN tbl_course_videos tvc 
+    ON tc.course_id = tvc.course_id
+LEFT JOIN tbl_tutor t 
+    ON tc.tutor_id = t.tutor_id
+LEFT JOIN tbl_exam te 
+    ON tvc.course_video_id = te.course_video_id
+LEFT JOIN tbl_exam_question teq 
+    ON te.exam_id = teq.exam_id
+WHERE tc.course_id = $1
+ORDER BY tvc.course_video_id, te.exam_id, teq.question_id;
+`;
     const result = await pool.query(query, [course_id]);
 
     if (result.rows.length === 0) {

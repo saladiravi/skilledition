@@ -100,3 +100,79 @@ exports.getStudentCourseByid = async (req, res) => {
 
 
    
+
+exports.getCourses = async (req, res) => {
+  try {
+    const { student_id } = req.query; // pass student_id from frontend
+
+    const query = `
+      SELECT 
+        tc.course_id,
+        tc.course_image,
+        tc.course_title,
+        tc.course_type,
+        tc.course_description,
+        tc.course_price,
+        tc.tutor_id,
+        t.name AS tutor_name,
+        tvc.course_video_title,
+        tvc.course_video,
+        tvc.duration,
+        tvc.course_video_id
+      FROM tbl_course tc
+      INNER JOIN tbl_course_videos tvc ON tc.course_id = tvc.course_id
+      LEFT JOIN tbl_tutor t ON tc.tutor_id = t.tutor_id
+      WHERE NOT EXISTS (
+        SELECT 1 
+        FROM tbl_student_course sc 
+        WHERE sc.course_id = tc.course_id 
+        AND sc.student_id = $1
+      )
+      ORDER BY tc.course_id;
+    `;
+
+    const result = await pool.query(query, [student_id]);
+
+    // Group by course
+    const coursesMap = {};
+
+    for (let row of result.rows) {
+      if (!coursesMap[row.course_id]) {
+        coursesMap[row.course_id] = {
+          course_id: row.course_id,
+          course_image: row.course_image,
+          course_title: row.course_title,
+          course_type: row.course_type,
+          course_description: row.course_description,
+          course_price: row.course_price,
+          tutor: {
+            tutor_id: row.tutor_id,
+            tutor_name: row.tutor_name
+          },
+          videos: []
+        };
+      }
+      coursesMap[row.course_id].videos.push({
+        course_video_id: row.course_video_id,
+        course_video_title: row.course_video_title,
+        course_video: row.course_video,
+        duration: row.duration
+      });
+    }
+
+    const courses = Object.values(coursesMap);
+
+    res.json({
+      statusCode: 200,
+      message: 'Courses Fetched Successfully',
+      course: courses
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      statusCode: 500,
+      message: 'Internal Server Error'
+    });
+  }
+};

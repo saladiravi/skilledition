@@ -5,6 +5,6 @@ const stundentCourse=require('../Controller/studentCourseController');
 routes.post('/buyCourse',stundentCourse.buyStudentCourse);
 routes.get('/getstudentCourses',stundentCourse.getStudentCourse);
 routes.post('/getCourseBystudent',stundentCourse.getStudentCourseByid);
-routes.post('/');
+routes.post('/getcoursesbystudent',stundentCourse.getCourses) 
  
 module.exports=routes  
