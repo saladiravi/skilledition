@@ -170,12 +170,12 @@ exports.getAllExam = async (req, res) => {
       FROM tbl_exam e
       JOIN tbl_course c ON e.course_id = c.course_id
       JOIN tbl_tutor t ON e.tutor_id = t.tutor_id
-     JOIN tbl_course_videos v ON v.course_video_id = e.course_video_id
+     JOIN tbl_course_videos v ON v.course_id = c.course_id
       GROUP BY 
         e.exam_id, e.exam_name, e.course_id,
         c.course_title, c.course_type, c.course_image,
         e.tutor_id, t.name, t.email
-    `;
+    ORDER BY e.exam_id;`;
 
     const result = await pool.query(query);
     res.json({
