@@ -85,6 +85,7 @@ exports.getStudentCourseByid = async (req, res) => {
     const result = await pool.query(query, [student_id]);
 
     return res.status(200).json({
+      message:'Fetched Sucessfully',
       statusCode: 200,
       courses: result.rows,
     });
