@@ -604,3 +604,50 @@ ORDER BY tvc.course_video_id, te.exam_id, teq.question_id;
     });
   }
 };
+
+
+exports.getCourseVideosById = async (req, res) => {
+  try {
+    const { course_video_id } = req.body; // get video id from body (or req.params if you want)
+
+    if (!course_video_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "course_video_id is required",
+      });
+    }
+
+    const query = `
+      SELECT 
+        course_video_id,
+        course_video_title,
+        course_video,
+        course_id,
+        duration
+      FROM tbl_course_videos
+      WHERE course_video_id = $1
+    `;
+
+    const result = await pool.query(query, [course_video_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "Video not found",
+      });
+    }
+
+    res.status(200).json({
+      statusCode: 200,
+       message:'Fetched Sucessfully',
+      data: result.rows[0],
+    });
+
+  } catch (error) {
+    console.error("Error fetching course video:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  }
+};

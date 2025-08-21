@@ -456,3 +456,53 @@ exports.getExamcoursecoursevideoById = async (req, res) => {
   }
 };
 
+
+
+exports.getExamQuestionsById = async (req, res) => {
+  try {
+    const { exam_id } = req.body; // or use req.params.exam_id
+
+    if (!exam_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "exam is required",
+      });
+    }
+
+    const query = `
+      SELECT 
+        question_id,
+        question,
+        a,
+        b,
+        c,
+        d,
+        answer
+      FROM tbl_exam_question
+      WHERE exam_id = $1
+    `;
+
+    const result = await pool.query(query, [exam_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "No questions found for this exam",
+      });
+    }
+
+    res.status(200).json({
+      statusCode: 200,
+      message:'Fetched Sucessfully',
+      exam_id,
+      questions: result.rows,
+    });
+
+  } catch (error) {
+    console.error("Error fetching exam questions:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  }
+};
