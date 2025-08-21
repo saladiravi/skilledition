@@ -9,6 +9,8 @@ const examRoutes=require('./routes/examRoutes');
 const studentCourseRoutes=require('./routes/studentcourseroutes');
 const studentwatchedvideos=require('./routes/studentwatchedvideosroutes');
 const login=require('./routes/loginroutes');
+const examresults=require('./routes/examresultroutes');
+
 
 const app = express();
 
@@ -24,7 +26,7 @@ app.use('/exam',examRoutes);
 app.use('/studentcourse',studentCourseRoutes);
 app.use('/addStudentWatch',studentwatchedvideos);
 app.use('/loginapi',login);
-
+app.use('/examresult',examresults);
 
 
 
