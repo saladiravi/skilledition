@@ -15,21 +15,21 @@ exports.addExamResult = async (req, res) => {
     await client.query("BEGIN");
 
     const insertQuery = `
-      INSERT INTO tbl_exam_result (exam_id, question_id, correct_answer, attempt, created_at)
+      INSERT INTO tbl_exam_result (exam_id, question_id, student_answer, attempt, created_at)
       VALUES ($1, $2, $3, $4, NOW())
-      RETURNING exam_result_id, exam_id, question_id, correct_answer, attempt, created_at
+      RETURNING exam_result_id, exam_id, question_id, student_answer, attempt, created_at
     `;
 
     let insertedRows = [];
 
     for (const row of results) {
-      const { question_id, correct_answer, attempt } = row;
+      const { question_id, student_answer, attempt } = row;
 
-      if (!question_id || !correct_answer || !attempt) {
+      if (!question_id || !student_answer || !attempt) {
         continue; // skip invalid entries
       }
 
-      const values = [exam_id, question_id, correct_answer, attempt];
+      const values = [exam_id, question_id, student_answer, attempt];
       const result = await client.query(insertQuery, values);
       insertedRows.push(result.rows[0]);
     }
@@ -73,7 +73,7 @@ exports.getExamResult = async (req, res) => {
           q.question_id,
           q.question,
           q.a, q.b, q.c, q.d,
-          q.answer AS correct_answer,
+          q.answer AS student_answer,
           r.student_answer,
           CASE 
               WHEN r.student_answer = q.answer THEN 'Right'
