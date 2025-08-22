@@ -36,8 +36,8 @@ exports.addExamResult = async (req, res) => {
 
     await client.query("COMMIT");
 
-    res.status(201).json({
-      statusCode: 201,
+    res.status(200).json({
+      statusCode: 200,
       message: "Exam results added successfully",
       data: insertedRows,
     });
@@ -97,6 +97,7 @@ exports.getExamResult = async (req, res) => {
 
     res.status(200).json({
       statusCode: 200,
+      message:'Fetched Sucessfully',
       exam_id,
       results: result.rows,
     });
