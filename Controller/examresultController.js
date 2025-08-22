@@ -164,3 +164,77 @@ exports.getExamResult = async (req, res) => {
     });
   }
 };
+
+
+ 
+
+// exports.getExamattempts = async (req, res) => {
+//   const { exam_id ,student_id} = req.body; // exam_id from request params
+
+//   try {
+//     const query = `
+//       SELECT 
+//         er.attempt,
+//         MIN(er.created_at) AS created_at,
+//         COUNT(*) FILTER (WHERE er.student_answer = eq.answer) AS correct_answers,
+//         COUNT(*) FILTER (WHERE er.student_answer <> eq.answer) AS wrong_answers
+//       FROM tbl_exam_result er
+//       JOIN tbl_exam_question eq ON er.question_id = eq.question_id
+//       WHERE er.exam_id = $1
+//       GROUP BY er.attempt
+//       ORDER BY er.attempt;
+//     `;
+
+//     const { rows } = await pool.query(query, [exam_id]);
+
+//     res.status(200).json({
+      
+//       statusCode: 200,
+//       message:'Fectched Sucessfully',
+//       data: rows
+//     });
+
+//   } catch (error) {
+//     console.error("Error fetching exam results:", error);
+//     res.status(500).json({
+//       statusCode: 500,
+//       message: "Internal Server Error"
+//     });
+//   }
+// };
+
+exports.getExamattempts = async (req, res) => {
+  const { exam_id, student_id } = req.body;
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT 
+        attempt,
+        MIN(created_at) AS created_at, -- earliest submission timestamp of that attempt
+        SUM(CASE WHEN eq.answer = er.student_answer THEN 1 ELSE 0 END) AS correct_answers,
+        SUM(CASE WHEN eq.answer <> er.student_answer THEN 1 ELSE 0 END) AS wrong_answers
+      FROM tbl_exam_result er
+      JOIN tbl_exam_question eq ON eq.question_id = er.question_id
+      WHERE er.exam_id = $1
+        AND er.student_id = $2
+        AND er.attempt <> '0'
+      GROUP BY attempt
+      ORDER BY attempt ASC
+      `,
+      [exam_id, student_id]
+    );
+
+    res.json({
+      statusCode: 200,
+      message: "Exam result fetched successfully",
+      data: result.rows
+    });
+  } catch (error) {
+    console.error("Error fetching exam result:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  }
+};
