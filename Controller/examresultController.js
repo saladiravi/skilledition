@@ -238,3 +238,56 @@ exports.getExamattempts = async (req, res) => {
     });
   }
 };
+
+
+exports.getCoursesWithExamsAssignment = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        c.course_id,
+        c.course_title,
+        e.exam_id,
+        e.exam_name
+      FROM tbl_course c
+      LEFT JOIN tbl_exam e ON c.course_id = e.course_id
+      ORDER BY c.course_id, e.exam_id
+    `;
+
+    const { rows } = await pool.query(query);
+
+    // Group exams by course
+    const courses = [];
+    const courseMap = {};
+
+    rows.forEach(row => {
+      if (!courseMap[row.course_id]) {
+        courseMap[row.course_id] = {
+          course_id: row.course_id,
+          course_title: row.course_title,
+          exams: []
+        };
+        courses.push(courseMap[row.course_id]);
+      }
+
+      if (row.exam_id) {
+        courseMap[row.course_id].exams.push({
+          exam_id: row.exam_id,
+          exam_name: row.exam_name
+        });
+      }
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Courses with exams fetched successfully",
+      data: courses
+    });
+
+  } catch (error) {
+    console.error("Error fetching courses with exams:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal server error"
+    });
+  }
+};
