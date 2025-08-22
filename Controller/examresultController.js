@@ -1,23 +1,78 @@
 const pool = require('../db/db');
 
+// exports.addExamResult = async (req, res) => {
+//   const client = await pool.connect();
+//   try {
+//     const { exam_id, results } = req.body;
+
+//     if (!exam_id || !Array.isArray(results) || results.length === 0) {
+//       return res.status(400).json({
+//         statusCode: 400,
+//         message: "exam_id and results array are required",
+//       });
+//     }
+
+//     await client.query("BEGIN");
+
+//     const insertQuery = `
+//       INSERT INTO tbl_exam_result (exam_id, question_id, student_answer, attempt, created_at)
+//       VALUES ($1, $2, $3, $4, NOW())
+//       RETURNING exam_result_id, exam_id, question_id, student_answer, attempt, created_at
+//     `;
+
+//     let insertedRows = [];
+
+//     for (const row of results) {
+//       const { question_id, student_answer, attempt } = row;
+
+//       if (!question_id || !student_answer || !attempt) {
+//         continue; // skip invalid entries
+//       }
+
+//       const values = [exam_id, question_id, student_answer, attempt];
+//       const result = await client.query(insertQuery, values);
+//       insertedRows.push(result.rows[0]);
+//     }
+
+//     await client.query("COMMIT");
+
+//     res.status(200).json({
+//       statusCode: 200,
+//       message: "Exam results added successfully",
+//       data: insertedRows,
+//     });
+
+//   } catch (error) {
+//     await client.query("ROLLBACK");
+//     console.error("Error inserting exam results:", error);
+//     res.status(500).json({
+//       statusCode: 500,
+//       message: "Internal Server Error",
+//     });
+//   } finally {
+//     client.release();
+//   }
+// };
+
+
 exports.addExamResult = async (req, res) => {
   const client = await pool.connect();
   try {
-    const { exam_id, results } = req.body;
+    const { exam_id, student_id, results } = req.body;
 
-    if (!exam_id || !Array.isArray(results) || results.length === 0) {
+    if (!exam_id || !student_id || !Array.isArray(results) || results.length === 0) {
       return res.status(400).json({
         statusCode: 400,
-        message: "exam_id and results array are required",
+        message: "exam_id, student_id and results array are required",
       });
     }
 
     await client.query("BEGIN");
 
     const insertQuery = `
-      INSERT INTO tbl_exam_result (exam_id, question_id, student_answer, attempt, created_at)
-      VALUES ($1, $2, $3, $4, NOW())
-      RETURNING exam_result_id, exam_id, question_id, student_answer, attempt, created_at
+      INSERT INTO tbl_exam_result (exam_id, student_id, question_id, student_answer, attempt, created_at)
+      VALUES ($1, $2, $3, $4, $5, NOW())
+      RETURNING exam_result_id, exam_id, student_id, question_id, student_answer, attempt, created_at
     `;
 
     let insertedRows = [];
@@ -29,7 +84,7 @@ exports.addExamResult = async (req, res) => {
         continue; // skip invalid entries
       }
 
-      const values = [exam_id, question_id, student_answer, attempt];
+      const values = [exam_id, student_id, question_id, student_answer, attempt];
       const result = await client.query(insertQuery, values);
       insertedRows.push(result.rows[0]);
     }
@@ -53,7 +108,6 @@ exports.addExamResult = async (req, res) => {
     client.release();
   }
 };
-
 
 exports.getExamResult = async (req, res) => {
   try {
