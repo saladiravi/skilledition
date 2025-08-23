@@ -225,7 +225,7 @@ exports.getExamResult = async (req, res) => {
           q.answer AS correct_answer,       -- ✅ Correct answer from exam questions
           r.student_answer,                 -- ✅ Student’s selected answer
           CASE 
-              WHEN r.student_answer = q.answer THEN 'Right'
+              WHEN r.student_answer = q.answer THEN 'Correct'
               ELSE 'Wrong'
           END AS result_status,
           r.created_at
