@@ -55,59 +55,59 @@ const pool = require('../db/db');
 // };
 
 
-exports.addExamResult = async (req, res) => {
-  const client = await pool.connect();
-  try {
-    const { exam_id, student_id, results } = req.body;
+// exports.addExamResult = async (req, res) => {
+//   const client = await pool.connect();
+//   try {
+//     const { exam_id, student_id, results } = req.body;
 
-    if (!exam_id || !student_id || !Array.isArray(results) || results.length === 0) {
-      return res.status(400).json({
-        statusCode: 400,
-        message: "exam_id, student_id and results array are required",
-      });
-    }
+//     if (!exam_id || !student_id || !Array.isArray(results) || results.length === 0) {
+//       return res.status(400).json({
+//         statusCode: 400,
+//         message: "exam_id, student_id and results array are required",
+//       });
+//     }
 
-    await client.query("BEGIN");
+//     await client.query("BEGIN");
 
-    const insertQuery = `
-      INSERT INTO tbl_exam_result (exam_id, student_id, question_id, student_answer, attempt, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-      RETURNING exam_result_id, exam_id, student_id, question_id, student_answer, attempt, created_at
-    `;
+//     const insertQuery = `
+//       INSERT INTO tbl_exam_result (exam_id, student_id, question_id, student_answer, attempt, created_at)
+//       VALUES ($1, $2, $3, $4, $5, NOW())
+//       RETURNING exam_result_id, exam_id, student_id, question_id, student_answer, attempt, created_at
+//     `;
 
-    let insertedRows = [];
+//     let insertedRows = [];
 
-    for (const row of results) {
-      const { question_id, student_answer, attempt } = row;
+//     for (const row of results) {
+//       const { question_id, student_answer, attempt } = row;
 
-      if (!question_id || !student_answer || !attempt) {
-        continue; // skip invalid entries
-      }
+//       if (!question_id || !student_answer || !attempt) {
+//         continue; // skip invalid entries
+//       }
 
-      const values = [exam_id, student_id, question_id, student_answer, attempt];
-      const result = await client.query(insertQuery, values);
-      insertedRows.push(result.rows[0]);
-    }
+//       const values = [exam_id, student_id, question_id, student_answer, attempt];
+//       const result = await client.query(insertQuery, values);
+//       insertedRows.push(result.rows[0]);
+//     }
 
-    await client.query("COMMIT");
+//     await client.query("COMMIT");
 
-    res.status(200).json({
-      statusCode: 200,
-      message: "Exam results added successfully",
-      data: insertedRows,
-    });
+//     res.status(200).json({
+//       statusCode: 200,
+//       message: "Exam results added successfully",
+//       data: insertedRows,
+//     });
 
-  } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("Error inserting exam results:", error);
-    res.status(500).json({
-      statusCode: 500,
-      message: "Internal Server Error",
-    });
-  } finally {
-    client.release();
-  }
-};
+//   } catch (error) {
+//     await client.query("ROLLBACK");
+//     console.error("Error inserting exam results:", error);
+//     res.status(500).json({
+//       statusCode: 500,
+//       message: "Internal Server Error",
+//     });
+//   } finally {
+//     client.release();
+//   }
+// };
 
 // exports.getExamResult = async (req, res) => {
 //   try {
@@ -202,6 +202,70 @@ exports.addExamResult = async (req, res) => {
 //     });
 //   }
 // };
+
+exports.addExamResult = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { exam_id, student_id, results } = req.body;
+
+    if (!exam_id || !student_id || !Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "exam_id, student_id and results array are required",
+      });
+    }
+
+    await client.query("BEGIN");
+
+    // 🔹 Get last attempt number for this student & exam
+    const attemptRes = await client.query(
+      `SELECT COALESCE(MAX(attempt), 0) AS last_attempt 
+       FROM tbl_exam_result 
+       WHERE exam_id = $1 AND student_id = $2`,
+      [exam_id, student_id]
+    );
+    let currentAttempt = Number(attemptRes.rows[0].last_attempt) + 1;
+
+    const insertQuery = `
+      INSERT INTO tbl_exam_result (exam_id, student_id, question_id, student_answer, attempt, created_at)
+      VALUES ($1, $2, $3, $4, $5, NOW())
+      RETURNING exam_result_id, exam_id, student_id, question_id, student_answer, attempt, created_at
+    `;
+
+    let insertedRows = [];
+
+    for (const row of results) {
+      const { question_id, student_answer } = row;
+
+      if (!question_id || !student_answer) {
+        continue; // skip invalid entries
+      }
+
+      // use the same incremented attempt for this exam session
+      const values = [exam_id, student_id, question_id, student_answer, currentAttempt];
+      const result = await client.query(insertQuery, values);
+      insertedRows.push(result.rows[0]);
+    }
+
+    await client.query("COMMIT");
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Exam results added successfully",
+      data: insertedRows,
+    });
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error inserting exam results:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  } finally {
+    client.release();
+  }
+};
 
 
 exports.getExamResult = async (req, res) => {
