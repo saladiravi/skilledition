@@ -1,58 +1,58 @@
 const pool = require('../db/db');
 
-// exports.addExamResult = async (req, res) => {
-//   const client = await pool.connect();
-//   try {
-//     const { exam_id, results } = req.body;
+exports.addExamResultassingment = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { exam_id,student_id, results } = req.body;
 
-//     if (!exam_id || !Array.isArray(results) || results.length === 0) {
-//       return res.status(400).json({
-//         statusCode: 400,
-//         message: "exam_id and results array are required",
-//       });
-//     }
+    if (!exam_id || !student_id || !Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "exam_id and results array are required",
+      });
+    }
 
-//     await client.query("BEGIN");
+    await client.query("BEGIN");
 
-//     const insertQuery = `
-//       INSERT INTO tbl_exam_result (exam_id, question_id, student_answer, attempt, created_at)
-//       VALUES ($1, $2, $3, $4, NOW())
-//       RETURNING exam_result_id, exam_id, question_id, student_answer, attempt, created_at
-//     `;
+    const insertQuery = `
+      INSERT INTO tbl_exam_result (exam_id, student_id,question_id, student_answer, attempt, created_at)
+      VALUES ($1, $2, $3, $4,$5, NOW())
+      RETURNING exam_result_id, exam_id, student_id,question_id, student_answer, attempt, created_at
+      `;
 
-//     let insertedRows = [];
+    let insertedRows = [];
 
-//     for (const row of results) {
-//       const { question_id, student_answer, attempt } = row;
+    for (const row of results) {
+      const { question_id, student_answer, attempt } = row;
 
-//       if (!question_id || !student_answer || !attempt) {
-//         continue; // skip invalid entries
-//       }
+      if (!question_id || !student_answer || !attempt) {
+        continue; // skip invalid entries
+      }
 
-//       const values = [exam_id, question_id, student_answer, attempt];
-//       const result = await client.query(insertQuery, values);
-//       insertedRows.push(result.rows[0]);
-//     }
+      const values = [exam_id, student_id, question_id, student_answer, attempt];
+      const result = await client.query(insertQuery, values);
+      insertedRows.push(result.rows[0]);
+    }
 
-//     await client.query("COMMIT");
+    await client.query("COMMIT");
 
-//     res.status(200).json({
-//       statusCode: 200,
-//       message: "Exam results added successfully",
-//       data: insertedRows,
-//     });
+    res.status(200).json({
+      statusCode: 200,
+      message: "Exam results added successfully",
+      data: insertedRows,
+    });
 
-//   } catch (error) {
-//     await client.query("ROLLBACK");
-//     console.error("Error inserting exam results:", error);
-//     res.status(500).json({
-//       statusCode: 500,
-//       message: "Internal Server Error",
-//     });
-//   } finally {
-//     client.release();
-//   }
-// };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error inserting exam results:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  } finally {
+    client.release();
+  }
+};
 
 
 // exports.addExamResult = async (req, res) => {
@@ -421,6 +421,70 @@ exports.getCoursesWithExamsAssignment = async (req, res) => {
     res.status(500).json({
       statusCode: 500,
       message: "Internal server error"
+    });
+  }
+};
+
+
+
+
+exports.getExamResultassignment = async (req, res) => {
+  try {
+    const { exam_id, student_id } = req.body;
+
+    if (!exam_id || !student_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "exam_id and student_id are required",
+      });
+    }
+
+    const query = `
+      SELECT 
+          r.exam_result_id,
+          r.exam_id,
+          q.question_id,
+          q.question,
+          q.a, q.b, q.c, q.d,
+          q.answer AS correct_answer,       -- ✅ Correct answer from exam questions
+          r.student_answer,                 -- ✅ Student’s selected answer
+          CASE 
+              WHEN r.student_answer = q.answer THEN 'Correct'
+              ELSE 'Wrong'
+          END AS result_status,
+          r.attempt,
+          r.created_at
+      FROM tbl_exam_result r
+      JOIN tbl_exam_question q ON r.question_id = q.question_id
+      WHERE r.exam_id = $1 
+        AND r.student_id = $2
+        AND r.attempt = 0   -- ✅ Only attempt 0
+      ORDER BY r.created_at ASC
+    `;
+
+    const result = await pool.query(query, [exam_id, student_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "No results found for this exam (attempt 0)",
+      });
+    }
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Fetched Successfully (Attempt 0)",
+      exam_id,
+      student_id,
+      attempt: result.rows[0].attempt,
+      results: result.rows,
+    });
+
+  } catch (error) {
+    console.error("Error fetching exam results:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
     });
   }
 };
