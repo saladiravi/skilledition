@@ -10,6 +10,7 @@ routes.post('/getexamattempts',examresult.getExamattempts);
 routes.get('/getCourseWithExamsAssignment',examresult.getCoursesWithExamsAssignment);
 routes.post('/addExamResultAssingment',examresult.addExamResultassingment);
 routes.post('/getExamResultAssignment',examresult.getExamResultassignment);
+routes.post('/getAssingmentquestionsbyExamId',examresult.getExamQuestionAssignmentById);
 
 
 module.exports= routes
