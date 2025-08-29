@@ -249,6 +249,108 @@ exports.getCoursesbytutor = async (req, res) => {
 };
 
 
+// exports.updateCourseWithVideos = async (req, res) => {
+//   const {
+//     course_id,
+//     course_type,
+//     course_title,
+//     course_description,
+//     course_price,
+//     tutor_id,
+//     course_video_title,
+//   } = req.body;
+
+//   if (!course_id) {
+//     return res.status(400).json({
+//       statusCode: 400,
+//       message: 'Course_id is required'
+//     });
+//   }
+
+//   let videos = [];
+//   try {
+//     videos = JSON.parse(course_video_title);
+//   } catch (err) {
+//     console.error("JSON parse error:", err);
+//     return res.status(400).json({
+//       status: 'error',
+//       message: 'Invalid video metadata JSON'
+//     });
+//   }
+
+//   let courseImage = null;
+//   if (req.files?.course_image && Array.isArray(req.files.course_image) && req.files.course_image.length > 0) {
+//     courseImage = `uploads/${req.files.course_image[0].filename}`;
+//   } else if (req.file) {
+//     courseImage = `uploads/${req.file.filename}`;
+//   }
+
+//   const client = await pool.connect();
+
+//   try {
+//     await client.query('BEGIN');
+
+//     await client.query(
+//       `UPDATE tbl_course 
+//        SET course_type = $1, 
+//            course_title = $2, 
+//            course_description = $3, 
+//            course_price = $4, 
+//            tutor_id = $5,
+//            course_image = COALESCE($6, course_image)
+//        WHERE course_id = $7`,
+//       [
+//         course_type,
+//         course_title,
+//         course_description,
+//         course_price,
+//         tutor_id,
+//         courseImage,
+//         course_id
+//       ]
+//     );
+
+//     await client.query(`DELETE FROM tbl_course_videos WHERE course_id = $1`, [course_id]);
+
+//     if (!req.files?.course_video || req.files.course_video.length !== videos.length) {
+//       throw new Error(`Uploaded videos count mismatch: expected ${videos.length}, got ${req.files?.course_video?.length || 0}`);
+//     }
+
+//     for (let i = 0; i < videos.length; i++) {
+//       const { title } = videos[i];
+//       const video_file = req.files.course_video[i];
+
+//       const videoPath = path.join(__dirname, '../uploads', video_file.filename);
+//       const durationInSeconds = Math.round(await getVideoDurationInSeconds(videoPath));
+//       const duration = formatDuration(durationInSeconds);
+
+//       await client.query(
+//         `INSERT INTO tbl_course_videos 
+//          (course_video_title, course_video, course_id, duration)
+//          VALUES ($1, $2, $3, $4)`,
+//         [title, video_file.filename, course_id, duration]
+//       );
+//     }
+
+//     await client.query('COMMIT');
+//     res.status(200).json({
+//       statusCode: 200,
+//       message: 'Courses updated successfully'
+//     });
+//   } catch (err) {
+//     await client.query('ROLLBACK');
+//     console.error(err);
+//     res.status(500).json({
+//       statusCode:500,
+       
+//       message: err.message || 'Internal Server Error'
+//     });
+//   } finally {
+//     client.release();
+//   }
+// };
+
+
 exports.updateCourseWithVideos = async (req, res) => {
   const {
     course_id,
@@ -269,7 +371,7 @@ exports.updateCourseWithVideos = async (req, res) => {
 
   let videos = [];
   try {
-    videos = JSON.parse(course_video_title);
+    videos = JSON.parse(course_video_title); // Expect array like [{id, title}, {title}, ...]
   } catch (err) {
     console.error("JSON parse error:", err);
     return res.status(400).json({
@@ -290,6 +392,7 @@ exports.updateCourseWithVideos = async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // Update course details
     await client.query(
       `UPDATE tbl_course 
        SET course_type = $1, 
@@ -310,47 +413,75 @@ exports.updateCourseWithVideos = async (req, res) => {
       ]
     );
 
-    await client.query(`DELETE FROM tbl_course_videos WHERE course_id = $1`, [course_id]);
-
+    // Check video count vs uploaded files
     if (!req.files?.course_video || req.files.course_video.length !== videos.length) {
       throw new Error(`Uploaded videos count mismatch: expected ${videos.length}, got ${req.files?.course_video?.length || 0}`);
     }
 
+    const keepIds = [];
+
+    // Insert or update videos
     for (let i = 0; i < videos.length; i++) {
-      const { title } = videos[i];
+      const { id, title } = videos[i]; // "id" = existing course_video_id
       const video_file = req.files.course_video[i];
 
       const videoPath = path.join(__dirname, '../uploads', video_file.filename);
       const durationInSeconds = Math.round(await getVideoDurationInSeconds(videoPath));
       const duration = formatDuration(durationInSeconds);
 
+      if (id) {
+        // Update existing video (preserve course_video_id)
+        await client.query(
+          `UPDATE tbl_course_videos
+           SET course_video_title = $1,
+               course_video = $2,
+               duration = $3
+           WHERE course_video_id = $4 AND course_id = $5`,
+          [title, video_file.filename, duration, id, course_id]
+        );
+        keepIds.push(id);
+      } else {
+        // Insert new video
+        const result = await client.query(
+          `INSERT INTO tbl_course_videos 
+           (course_video_title, course_video, course_id, duration)
+           VALUES ($1, $2, $3, $4)
+           RETURNING course_video_id`,
+          [title, video_file.filename, course_id, duration]
+        );
+        keepIds.push(result.rows[0].course_video_id);
+      }
+    }
+
+    // Delete only videos not present in updated list
+    if (keepIds.length > 0) {
       await client.query(
-        `INSERT INTO tbl_course_videos 
-         (course_video_title, course_video, course_id, duration)
-         VALUES ($1, $2, $3, $4)`,
-        [title, video_file.filename, course_id, duration]
+        `DELETE FROM tbl_course_videos 
+         WHERE course_id = $1 AND course_video_id NOT IN (${keepIds.join(',')})`,
+        [course_id]
       );
+    } else {
+      await client.query(`DELETE FROM tbl_course_videos WHERE course_id = $1`, [course_id]);
     }
 
     await client.query('COMMIT');
+
     res.status(200).json({
       statusCode: 200,
-      message: 'Courses updated successfully'
+      message: 'Course updated successfully'
     });
+
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({
-      statusCode:500,
-       
+      statusCode: 500,
       message: err.message || 'Internal Server Error'
     });
   } finally {
     client.release();
   }
 };
-
-
 
 
 
