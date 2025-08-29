@@ -38,7 +38,7 @@ exports.addExamResultassingment = async (req, res) => {
 
     res.status(200).json({
       statusCode: 200,
-      message: "Exam results added successfully",
+      message: "Exam results submitted successfully",
       data: insertedRows,
     });
 
@@ -196,7 +196,7 @@ exports.addExamResult = async (req, res) => {
 
     res.status(200).json({
       statusCode: 200,
-      message: "Exam results added successfully",
+      message: "Exam results submitted successfully",
       data: insertedRows,
     });
 
