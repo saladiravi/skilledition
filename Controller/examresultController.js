@@ -511,8 +511,8 @@ exports.getExamQuestionAssignmentById = async (req, res) => {
     const checkResult = await pool.query(checkQuery, [exam_id]);
 
     if (checkResult.rows.length > 0) {
-      return res.status(400).json({
-        statusCode: 400,
+      return res.status(409).json({
+        statusCode: 409,
         message: "You have already written this exam",
       });
     }
