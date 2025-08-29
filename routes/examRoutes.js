@@ -11,6 +11,8 @@ routes.post('/getexambycoursevideos',exmcontroller.getExamcoursecoursevideoById)
 routes.post('/getexambytutor',exmcontroller.getAllExamsbytutor);
 routes.get('/getcoursevideosbyquestions',exmcontroller.getAllExam);
 routes.post('/getquestionsbyeExamId',exmcontroller.getExamQuestionsById);
+routes.post('/getAssingmentquestionsbyeExamId',exmcontroller.getExamQuestionAssignmentById);
+
 
 
 module.exports=routes; 
