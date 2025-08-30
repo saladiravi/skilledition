@@ -97,7 +97,7 @@ exports.getallstudents=async(req,res)=>{
 
 exports.updateStudent = async (req, res) => {
     const { student_id } = req.body;
-    const { 
+    let { 
         first_name, last_name, phnumber, email, gender, 
         date_of_birth, qualification, college, pass_out_year, 
         address, pincode, password 
@@ -107,12 +107,16 @@ exports.updateStudent = async (req, res) => {
         if (!student_id) {
             return res.status(400).json({
                 statusCode: 400,
-                message: 'Student  is required'
+                message: 'student_id is required'
             });
         } 
 
         // Check if student exists
-        const existingStudent = await pool.query('SELECT * FROM tbl_student WHERE student_id = $1', [student_id]);
+        const existingStudent = await pool.query(
+            'SELECT * FROM tbl_student WHERE student_id = $1', 
+            [student_id]
+        );
+
         if (existingStudent.rows.length === 0) {
             return res.status(404).json({
                 statusCode: 404,
@@ -131,8 +135,17 @@ exports.updateStudent = async (req, res) => {
         // Handle password
         let hashedPassword = existingStudent.rows[0].password;
         if (password) {
-            hashedPassword = await bcrypt.hash(password, 10);
+            hashedPassword = await bycrypt.hash(password, 10);
         }
+
+        // Convert empty strings to null for optional fields
+        if (date_of_birth === "") date_of_birth = null;
+        if (pass_out_year === "") pass_out_year = null;
+        if (last_name === "") last_name = null;
+        if (qualification === "") qualification = null;
+        if (college === "") college = null;
+        if (address === "") address = null;
+        if (pincode === "") pincode = null;
 
         // Update student
         await pool.query(
@@ -149,7 +162,7 @@ exports.updateStudent = async (req, res) => {
                 address = $10,
                 pincode = $11,
                 password = $12
-             WHERE  student_id= $13`,
+             WHERE student_id = $13`,
             [
                 first_name, last_name, phnumber, email, gender, 
                 date_of_birth, qualification, college, pass_out_year,
@@ -170,3 +183,43 @@ exports.updateStudent = async (req, res) => {
         });
     }
 }
+
+
+
+exports.getstudentbyid = async (req, res) => {
+  try {
+    const { student_id } = req.body;  // or req.params if you pass it in URL
+
+    if (!student_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "student_id is required"
+      });
+    }
+
+    const result = await pool.query(
+      'SELECT * FROM tbl_student WHERE student_id = $1',
+      [student_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "Student not found"
+      });
+    }
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Student details",
+      student: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error"
+    });
+  }
+};
