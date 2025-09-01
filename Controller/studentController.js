@@ -172,7 +172,7 @@ exports.updateStudent = async (req, res) => {
 
         res.status(200).json({
             statusCode: 200,
-            message: 'Student updated successfully'
+            message: 'Student details and password updated successfully'
         });
 
     } catch (error) {
@@ -211,7 +211,7 @@ exports.getstudentbyid = async (req, res) => {
 
     res.status(200).json({
       statusCode: 200,
-      message: "Student details",
+      message: "Student details fetched successfully",
       student: result.rows[0]
     });
 
