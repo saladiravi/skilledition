@@ -150,3 +150,42 @@ exports.updateTutor = async (req, res) => {
         });
     }
 };
+
+
+// Get tutor by tutor_id
+exports.getTutorById = async (req, res) => {
+  try {
+    const { tutor_id } = req.body; // get id from URL params
+
+    if (!tutor_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "tutor_id is required",
+      });
+    }
+
+    const result = await pool.query(
+      "SELECT * FROM tbl_tutor WHERE tutor_id = $1",
+      [tutor_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "Tutor not found",
+      });
+    }
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Tutor Details",
+      tutor: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Error fetching tutor by id:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  }
+};
