@@ -320,7 +320,7 @@ exports.getAllExamsbytutor = async (req, res) => {
         ) AS course_videos
       FROM tbl_course c
       LEFT JOIN tbl_course_videos cv ON c.course_id = cv.course_id
-      LEFT JOIN tbl_exam e ON e.course_video_id = cv.course_video_id
+      LEFT JOIN tbl_exam e ON e.course_id = c.course_id
       WHERE c.tutor_id = $1
       GROUP BY c.course_id;
     `;
@@ -338,6 +338,7 @@ exports.getAllExamsbytutor = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch exams by tutor" });
   }
 };
+
 
 exports.updateExam = async (req, res) => {
   const { exam_id } = req.body;
