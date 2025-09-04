@@ -236,50 +236,101 @@ GROUP BY c.course_id;
   }
 };
 
+// exports.getAllExamsbytutor = async (req, res) => {
+//   try {
+//     const { tutor_id } = req.body;
+
+//     if (!tutor_id) {
+//       return res.status(400).json({ message: "tutor is required" });
+//     }
+
+//     const query = `
+//       SELECT 
+//         e.exam_id,
+//         e.exam_name,
+//         e.course_id,
+//         c.course_title,
+//         c.course_type,
+//         c.course_image,
+//         e.tutor_id,
+//         t.name AS tutor_name,
+//         t.email AS tutor_email,
+//         -- Aggregate all videos for the course
+//         json_agg(
+//           json_build_object(
+//             'course_video_id', v.course_video_id,
+//             'course_video_title', v.course_video_title,
+//             'course_video', v.course_video,
+//             'duration', v.duration
+//           )
+//         ) AS course_videos
+//       FROM tbl_exam e
+//       JOIN tbl_course c ON e.course_id = c.course_id
+//       JOIN tbl_tutor t ON e.tutor_id = t.tutor_id
+//       JOIN tbl_course_videos v ON v.course_id = c.course_id
+//       WHERE e.tutor_id = $1
+//       GROUP BY 
+//         e.exam_id, e.exam_name, e.course_id,
+//         c.course_title, c.course_type, c.course_image,
+//         e.tutor_id, t.name, t.email
+//     `;
+
+//     const result = await pool.query(query, [tutor_id]);
+//     res.json({
+//       statusCode:200,
+//       message:'Fetched Sucessfully',
+//       result:result.rows
+//     });
+
+//   } catch (err) {
+//     console.error("Error fetching exams by tutor:", err);
+//     res.status(500).json({ message: "Failed to fetch exams by tutor" });
+//   }
+// };
 exports.getAllExamsbytutor = async (req, res) => {
   try {
     const { tutor_id } = req.body;
 
     if (!tutor_id) {
-      return res.status(400).json({ message: "tutor is required" });
+      return res.status(400).json({ message: "tutor_id is required" });
     }
 
     const query = `
       SELECT 
-        e.exam_id,
-        e.exam_name,
-        e.course_id,
+        c.course_id,
         c.course_title,
+        c.course_description,
+        c.course_price,
         c.course_type,
         c.course_image,
-        e.tutor_id,
-        t.name AS tutor_name,
-        t.email AS tutor_email,
-        -- Aggregate all videos for the course
-        json_agg(
-          json_build_object(
-            'course_video_id', v.course_video_id,
-            'course_video_title', v.course_video_title,
-            'course_video', v.course_video,
-            'duration', v.duration
-          )
+        c.tutor_id,
+        COALESCE(
+            JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'course_video_id', cv.course_video_id,
+                    'course_video_title', cv.course_video_title,
+                    'course_video', cv.course_video,
+                    'duration', cv.duration,
+                    'exam', JSON_BUILD_OBJECT(
+                        'exam_id', e.exam_id,
+                        'exam_name', e.exam_name
+                    )
+                )
+            ) FILTER (WHERE cv.course_video_id IS NOT NULL), '[]'
         ) AS course_videos
-      FROM tbl_exam e
-      JOIN tbl_course c ON e.course_id = c.course_id
-      JOIN tbl_tutor t ON e.tutor_id = t.tutor_id
-      JOIN tbl_course_videos v ON v.course_id = c.course_id
-      WHERE e.tutor_id = $1
-      GROUP BY 
-        e.exam_id, e.exam_name, e.course_id,
-        c.course_title, c.course_type, c.course_image,
-        e.tutor_id, t.name, t.email
+      FROM tbl_course c
+      LEFT JOIN tbl_course_videos cv ON c.course_id = cv.course_id
+      LEFT JOIN tbl_exam e ON e.course_video_id = cv.course_video_id
+      WHERE c.tutor_id = $1
+      GROUP BY c.course_id;
     `;
 
     const result = await pool.query(query, [tutor_id]);
+
     res.json({
-      statusCode:200,
-      message:'Fetched Sucessfully',
-      result:result.rows
+      statusCode: 200,
+      message: "Fetched successfully",
+      result: result.rows
     });
 
   } catch (err) {
