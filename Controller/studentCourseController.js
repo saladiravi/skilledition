@@ -105,7 +105,25 @@ exports.getStudentCourseByid = async (req, res) => {
 exports.getCourses = async (req, res) => {
   try {
     const { student_id } = req.body; // pass student_id from frontend
+  
+    if (!student_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "student is required"
+      });
+    }
 
+    // 🔍 Step 1: Check if student exists
+    const checkStudentQuery = `SELECT 1 FROM tbl_student WHERE student_id = $1 LIMIT 1`;
+    const studentCheck = await pool.query(checkStudentQuery, [student_id]);
+
+    if (studentCheck.rowCount === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "Student not found"
+      });
+    }
+    
     const query = `
       SELECT 
         tc.course_id,
