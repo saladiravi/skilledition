@@ -200,6 +200,7 @@ exports.getAllExam = async (req, res) => {
     c.course_type,
     c.course_image,
     c.tutor_id,
+    t.name AS tutor_name,
     COALESCE(
         JSON_AGG(
             JSON_BUILD_OBJECT(
@@ -217,7 +218,8 @@ exports.getAllExam = async (req, res) => {
 FROM tbl_course c
  JOIN tbl_course_videos cv ON c.course_id = cv.course_id
  JOIN tbl_exam e ON e.course_video_id = cv.course_video_id
-GROUP BY c.course_id;
+ JOIN tbl_tutor t ON t.tutor_id = c.tutor_id
+GROUP BY c.course_id, t.name;
 
 
     `;
