@@ -373,8 +373,69 @@ exports.getExamattempts = async (req, res) => {
 };
 
 
+// exports.getCoursesWithExamsAssignmentold = async (req, res) => {
+//   try {
+//     const query = `
+//       SELECT 
+//         c.course_id,
+//         c.course_title,
+//         e.exam_id,
+//         e.exam_name
+//       FROM tbl_course c
+//       LEFT JOIN tbl_exam e ON c.course_id = e.course_id
+//       ORDER BY c.course_id, e.exam_id
+//     `;
+
+//     const { rows } = await pool.query(query);
+
+//     // Group exams by course
+//     const courses = [];
+//     const courseMap = {};
+
+//     rows.forEach(row => {
+//       if (!courseMap[row.course_id]) {
+//         courseMap[row.course_id] = {
+//           course_id: row.course_id,
+//           course_title: row.course_title,
+//           exams: []
+//         };
+//         courses.push(courseMap[row.course_id]);
+//       }
+
+//       if (row.exam_id) {
+//         courseMap[row.course_id].exams.push({
+//           exam_id: row.exam_id,
+//           exam_name: row.exam_name
+//         });
+//       }
+//     });
+
+//     res.status(200).json({
+//       statusCode: 200,
+//       message: "Courses with exams fetched successfully",
+//       data: courses
+//     });
+
+//   } catch (error) {
+//     console.error("Error fetching courses with exams:", error);
+//     res.status(500).json({
+//       statusCode: 500,
+//       message: "Internal server error"
+//     });
+//   }
+// };
+
 exports.getCoursesWithExamsAssignment = async (req, res) => {
   try {
+    const { student_id } = req.body; // or req.query depending on how you send it
+
+    if (!student_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "student_id is required"
+      });
+    }
+
     const query = `
       SELECT 
         c.course_id,
@@ -382,11 +443,13 @@ exports.getCoursesWithExamsAssignment = async (req, res) => {
         e.exam_id,
         e.exam_name
       FROM tbl_course c
+      JOIN tbl_student_course sc ON c.course_id = sc.course_id
       LEFT JOIN tbl_exam e ON c.course_id = e.course_id
-      ORDER BY c.course_id, e.exam_id
+      WHERE sc.student_id = $1
+      ORDER BY c.course_id, e.exam_id;
     `;
 
-    const { rows } = await pool.query(query);
+    const { rows } = await pool.query(query, [student_id]);
 
     // Group exams by course
     const courses = [];
@@ -412,19 +475,18 @@ exports.getCoursesWithExamsAssignment = async (req, res) => {
 
     res.status(200).json({
       statusCode: 200,
-      message: "Courses with exams fetched successfully",
+      message: "Student's purchased courses with exams fetched successfully",
       data: courses
     });
 
   } catch (error) {
-    console.error("Error fetching courses with exams:", error);
+    console.error("Error fetching student's courses with exams:", error);
     res.status(500).json({
       statusCode: 500,
       message: "Internal server error"
     });
   }
 };
-
 
 
 

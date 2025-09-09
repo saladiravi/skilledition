@@ -104,7 +104,7 @@ exports.getStudentCourseByid = async (req, res) => {
 
 exports.getCourses = async (req, res) => {
   try {
-    const { student_id } = req.query; // pass student_id from frontend
+    const { student_id } = req.body; // pass student_id from frontend
 
     const query = `
       SELECT 
