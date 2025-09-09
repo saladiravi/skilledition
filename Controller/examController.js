@@ -318,11 +318,11 @@ exports.getAllExamsbytutor = async (req, res) => {
                         'exam_name', e.exam_name
                     )
                 )
-            ) FILTER (WHERE cv.course_video_id IS NOT NULL), '[]'
+            ) FILTER (WHERE e.exam_id IS NOT NULL), '[]'
         ) AS course_videos
       FROM tbl_course c
       JOIN tbl_course_videos cv ON c.course_id = cv.course_id
-      JOIN tbl_exam e ON e.course_id = c.course_id
+      JOIN tbl_exam e ON e.course_video_id = cv.course_video_id  -- ✅ Fix here
       WHERE c.tutor_id = $1
       GROUP BY c.course_id;
     `;
@@ -340,6 +340,7 @@ exports.getAllExamsbytutor = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch exams by tutor" });
   }
 };
+
 
 
 exports.updateExam = async (req, res) => {
