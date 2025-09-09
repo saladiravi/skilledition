@@ -321,8 +321,8 @@ exports.getAllExamsbytutor = async (req, res) => {
             ) FILTER (WHERE cv.course_video_id IS NOT NULL), '[]'
         ) AS course_videos
       FROM tbl_course c
-      LEFT JOIN tbl_course_videos cv ON c.course_id = cv.course_id
-      LEFT JOIN tbl_exam e ON e.course_id = c.course_id
+      JOIN tbl_course_videos cv ON c.course_id = cv.course_id
+      JOIN tbl_exam e ON e.course_id = c.course_id
       WHERE c.tutor_id = $1
       GROUP BY c.course_id;
     `;
