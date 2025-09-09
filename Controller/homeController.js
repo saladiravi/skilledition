@@ -4,18 +4,28 @@ const pool=require('../db/db');
  
 exports.getCoursesWithCount = async (req, res) => {
   try {
-    const query = `
-      SELECT 
-          c.course_id,
-          c.course_title,
-          c.course_type,
-          COALESCE(SUM(CAST(cv.duration AS INT)), 0) AS total_hours,
-          COUNT(cv.course_video_id) AS total_lessons
-      FROM tbl_course c
-      LEFT JOIN tbl_course_videos cv ON c.course_id = cv.course_id
-      GROUP BY c.course_id, c.course_title, c.course_type
-      ORDER BY c.course_type, c.course_id;
-    `;
+   const query = `
+  SELECT 
+      c.course_id,
+      c.course_title,
+      c.course_type,
+      COUNT(cv.course_video_id) AS total_lessons,
+      COALESCE(
+        ROUND(
+          SUM(
+            (SPLIT_PART(cv.duration, ':', 1)::INT * 60) + 
+            (SPLIT_PART(cv.duration, ':', 2)::INT)
+          ) / 3600.0,
+          2
+        ),
+        0
+      ) AS total_hours
+  FROM tbl_course c
+  LEFT JOIN tbl_course_videos cv ON c.course_id = cv.course_id
+  GROUP BY c.course_id, c.course_title, c.course_type
+  ORDER BY c.course_type, c.course_id;
+`;
+
 
     const result = await pool.query(query);
 
