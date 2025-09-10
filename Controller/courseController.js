@@ -153,6 +153,9 @@ exports.getCourses = async (req, res) => {
     }
 
     const courses = Object.values(coursesMap);
+    courses.forEach(course => {
+  course.videos.sort((a, b) => a.course_video_id - b.course_video_id);
+});
 
     res.json({
       statusCode:200,
