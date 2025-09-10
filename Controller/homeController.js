@@ -9,6 +9,7 @@ exports.getCoursesWithCount = async (req, res) => {
       c.course_id,
       c.course_title,
       c.course_type,
+      c.course_image,
       COUNT(cv.course_video_id) AS total_lessons,
       COALESCE(
         ROUND(
@@ -36,7 +37,9 @@ exports.getCoursesWithCount = async (req, res) => {
         groupedData[row.course_type] = [];
       }
       groupedData[row.course_type].push({
+      
         course_id: row.course_id,
+        course_image:row.course_image,
         course_title: row.course_title,
         total_hours: row.total_hours + " hours", // if you want hours string
         total_lessons: row.total_lessons + " lessons"
