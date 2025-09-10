@@ -4,7 +4,7 @@ const hmecontroller=require('../Controller/homeController');
 
 routes.get('/getcourse',hmecontroller.getCoursesWithCount);
 routes.post('/getcoursebyid',hmecontroller.getCourseVideos)
- 
+routes.post('/getcoursevideos',hmecontroller.getCourseVideoById)
 
 
 

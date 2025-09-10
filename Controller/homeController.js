@@ -59,7 +59,7 @@ exports.getCoursesWithCount = async (req, res) => {
  
 exports.getCourseVideos = async (req, res) => {
   try {
-    const { course_id } = req.params;
+    const { course_id } = req.body;
 
     const query = `
       SELECT 
@@ -82,6 +82,52 @@ exports.getCourseVideos = async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching course videos:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+ 
+
+exports.getCourseVideoById = async (req, res) => {
+  try {
+    const { course_video_id } = req.body;
+
+    if (!course_video_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "course_video_id is required"
+      });
+    }
+
+    const query = `
+      SELECT 
+          course_video_id,
+          course_video_title,
+          course_video,
+          duration,
+          course_id
+      FROM tbl_course_videos
+      WHERE course_video_id = $1
+      LIMIT 1;
+    `;
+
+    const result = await pool.query(query, [course_video_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "Course video not found"
+      });
+    }
+
+    res.json({
+      statusCode: 200,
+      message: "Course video details fetched successfully",
+      result: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error("Error fetching course video by ID:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
