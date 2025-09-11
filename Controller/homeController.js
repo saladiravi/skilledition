@@ -160,13 +160,18 @@ exports.getCourseVideoById = async (req, res) => {
 
     const query = `
       SELECT 
-          course_video_id,
-          course_video_title,
-          course_video,
-          duration,
-          course_id
-      FROM tbl_course_videos
-      WHERE course_video_id = $1
+          cv.course_video_id,
+          cv.course_video_title,
+          cv.course_video,
+          cv.duration,
+          c.course_id,
+          c.course_title,
+          c.course_description,
+          t.name AS tutor_name
+      FROM tbl_course_videos cv
+      INNER JOIN tbl_course c ON cv.course_id = c.course_id
+      LEFT JOIN tbl_tutor t ON c.tutor_id = t.tutor_id
+      WHERE cv.course_video_id = $1
       LIMIT 1;
     `;
 
