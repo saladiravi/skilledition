@@ -586,10 +586,11 @@ exports.getExamQuestionAssignmentById = async (req, res) => {
         a,
         b,
         c,
-        d,
-        answer
+        d
       FROM tbl_exam_question
       WHERE exam_id = $1
+      ORDER BY RANDOM()
+      LIMIT 5
     `;
 
     const result = await pool.query(query, [exam_id]);
