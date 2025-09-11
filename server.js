@@ -16,7 +16,18 @@ const app = express();
 
 
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
+const corsOptions = {
+  origin: [
+    "http://api.skilledition.in",  
+    "https://api.skilledition.in" 
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
