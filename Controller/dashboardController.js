@@ -179,14 +179,14 @@ exports.getTutorExamCount = async (req, res) => {
 exports.getAdminExamCount = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT COUNT(*) AS total_exams 
+      `SELECT COUNT(DISTINCT e.course_id) AS total_exams
        FROM public.tbl_exam e
-       WHERE e.course_id IS NOT NULL`  
+       WHERE e.course_id IS NOT NULL`
     );
 
     return res.status(200).json({
       statusCode: 200,
-      message: "Total exam count fetched successfully",
+      message: "Total exam count (unique courses) fetched successfully",
       total_exams: parseInt(result.rows[0].total_exams, 10),
     });
   } catch (error) {
@@ -197,4 +197,5 @@ exports.getAdminExamCount = async (req, res) => {
     });
   }
 };
+
 
