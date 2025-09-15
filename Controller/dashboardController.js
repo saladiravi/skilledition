@@ -108,16 +108,11 @@ exports.getStudentCount = async (req, res) => {
   }
 };
 
-
 exports.getStudentExamCount = async (req, res) => {
   try {
     const { student_id } = req.body;
-
     if (!student_id) {
-      return res.status(400).json({
-        statusCode: 400,
-        message: "Student ID is required",
-      });
+      return res.status(400).json({ statusCode: 400, message: "Student ID is required" });
     }
 
     const result = await pool.query(
@@ -125,7 +120,9 @@ exports.getStudentExamCount = async (req, res) => {
        FROM public.tbl_exam e
        INNER JOIN public.tbl_student_course sc 
          ON e.course_id = sc.course_id
-       WHERE sc.student_id = $1`,
+       WHERE sc.student_id = $1
+         AND e.course_id IS NOT NULL
+         AND e.course_video_id IS NULL`, // ensure exam is not linked to a video
       [student_id]
     );
 
@@ -135,11 +132,8 @@ exports.getStudentExamCount = async (req, res) => {
       student_exams: parseInt(result.rows[0].student_exams, 10),
     });
   } catch (error) {
-    console.error("Error in getStudentExamCount:", error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: "Internal Server Error",
-    });
+    console.error("Error in getStudentExamCount_Strict:", error);
+    return res.status(500).json({ statusCode: 500, message: "Internal Server Error" });
   }
 };
 
@@ -157,9 +151,12 @@ exports.getTutorExamCount = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT COUNT(exam_id) AS tutor_exams
-       FROM public.tbl_exam
-       WHERE tutor_id = $1`,
+      `SELECT COUNT(e.exam_id) AS tutor_exams
+       FROM public.tbl_exam e
+       LEFT JOIN public.tbl_course_video cv 
+         ON e.course_video_id = cv.course_video_id
+       WHERE e.tutor_id = $1 
+         AND (e.course_id IS NOT NULL OR cv.course_id IS NOT NULL)`,
       [tutor_id]
     );
 
@@ -178,10 +175,13 @@ exports.getTutorExamCount = async (req, res) => {
 };
 
 
+
 exports.getAdminExamCount = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT COUNT(*) AS total_exams FROM public.tbl_exam`
+      `SELECT COUNT(*) AS total_exams 
+       FROM public.tbl_exam e
+       WHERE e.course_id IS NOT NULL`  
     );
 
     return res.status(200).json({
@@ -197,3 +197,4 @@ exports.getAdminExamCount = async (req, res) => {
     });
   }
 };
+
