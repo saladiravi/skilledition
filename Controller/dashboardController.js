@@ -116,23 +116,22 @@ exports.getStudentExamCount = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT COUNT(DISTINCT e.exam_id) AS student_exams
+      `SELECT COUNT(DISTINCT e.course_id) AS student_exams
        FROM public.tbl_exam e
        INNER JOIN public.tbl_student_course sc 
          ON e.course_id = sc.course_id
        WHERE sc.student_id = $1
-         AND e.course_id IS NOT NULL
-         AND e.course_video_id IS NULL`, // ensure exam is not linked to a video
+         AND e.course_id IS NOT NULL`,
       [student_id]
     );
 
     return res.status(200).json({
       statusCode: 200,
-      message: "Student exam count fetched successfully",
+      message: "Student exam count (unique courses) fetched successfully",
       student_exams: parseInt(result.rows[0].student_exams, 10),
     });
   } catch (error) {
-    console.error("Error in getStudentExamCount_Strict:", error);
+    console.error("Error in getStudentExamCount:", error);
     return res.status(500).json({ statusCode: 500, message: "Internal Server Error" });
   }
 };
@@ -151,18 +150,16 @@ exports.getTutorExamCount = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT COUNT(e.exam_id) AS tutor_exams
+      `SELECT COUNT(DISTINCT e.course_id) AS tutor_exams
        FROM public.tbl_exam e
-       LEFT JOIN public.tbl_course_video cv 
-         ON e.course_video_id = cv.course_video_id
-       WHERE e.tutor_id = $1 
-         AND (e.course_id IS NOT NULL OR cv.course_id IS NOT NULL)`,
+       WHERE e.tutor_id = $1
+         AND e.course_id IS NOT NULL`,
       [tutor_id]
     );
 
     return res.status(200).json({
       statusCode: 200,
-      message: "Tutor exam count fetched successfully",
+      message: "Tutor exam count (unique courses) fetched successfully",
       tutor_exams: parseInt(result.rows[0].tutor_exams, 10),
     });
   } catch (error) {
@@ -173,6 +170,7 @@ exports.getTutorExamCount = async (req, res) => {
     });
   }
 };
+
 
 
 
