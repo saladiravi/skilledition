@@ -11,6 +11,8 @@ const studentwatchedvideos=require('./routes/studentwatchedvideosroutes');
 const login=require('./routes/loginroutes');
 const examresults=require('./routes/examresultroutes');
 const home=require('./routes/homeroutes')
+const dash=require('./routes/dashboardroutes');
+
 
 const app = express();
 
@@ -30,6 +32,7 @@ app.use('/addStudentWatch',studentwatchedvideos);
 app.use('/loginapi',login);
 app.use('/examresult',examresults);
 app.use('/home',home);
+app.use('/dashboard',dash);
 
 
 
