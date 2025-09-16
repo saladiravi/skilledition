@@ -349,7 +349,7 @@ exports.getStudentDashboardCounts = async (req, res) => {
         [student_id]
       ),
     ]);
- 
+
 
     return res.status(200).json({
       statusCode: 200,
