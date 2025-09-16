@@ -349,9 +349,7 @@ exports.getStudentDashboardCounts = async (req, res) => {
         [student_id]
       ),
     ]);
-
-    // optional debug — remove in production
-    console.log("my_courses rows:", myCoursesResult.rows);
+ 
 
     return res.status(200).json({
       statusCode: 200,
