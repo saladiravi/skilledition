@@ -4,13 +4,11 @@ const dashboardController=require('../Controller/dashboardController');
 
 
 
- routes.get('/totalcoursecount',dashboardController.getTotalCoursesCount);
- routes.post('/mycoursecount',dashboardController.getMyCoursesCount);
- routes.post('/tutorscoursecount',dashboardController.getTutorCoursesCount);
- routes.get('/studentcount',dashboardController.getStudentCount);
- routes.post('/studentexamcount',dashboardController.getStudentExamCount);
- routes.post('/getutorexamcount',dashboardController.getTutorExamCount);
- routes.get('/getadminexamcount',dashboardController.getAdminExamCount);
+ routes.get('/admindasboard',dashboardController.getAdminDashboardCounts);
+ routes.post('/tutordashboard',dashboardController.getTutorDashboardCounts);
+ routes.post('/studentdashboard',dashboardController.getStudentDashboardCounts);
+ 
+ 
 
 
  module.exports=routes
