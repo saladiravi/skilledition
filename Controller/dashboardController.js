@@ -273,69 +273,24 @@ exports.getTutorDashboardCounts = async (req, res) => {
 };
 
 
-// exports.getStudentDashboardCounts = async (req, res) => {
-//   try {
-//     const { student_id } = req.body;
-
-//     if (!student_id) {
-//       return res.status(400).json({
-//         statusCode: 400,
-//         message: "Student ID is required",
-//       });
-//     }
-
-//     // Run all 3 queries in parallel
-//     const [totalCoursesResult, myCoursesResult, studentExamsResult] = await Promise.all([
-//       pool.query(`SELECT COUNT(*) AS total_courses FROM public.tbl_course`),
-
-//       pool.query(
-//         `SELECT COUNT(*) AS my_courses 
-//          FROM public.tbl_student_course 
-//          WHERE student_id = $1`,
-//         [student_id]
-//       ),
-
-//       pool.query(
-//         `SELECT COUNT(DISTINCT e.course_id) AS student_exams
-//          FROM public.tbl_exam e
-//          INNER JOIN public.tbl_student_course sc 
-//            ON e.course_id = sc.course_id
-//          WHERE sc.student_id = $1
-//            AND e.course_id IS NOT NULL`,
-//         [student_id]
-//       ),
-//     ]);
-
-//     return res.status(200).json({
-//       statusCode: 200,
-//       message: "Student dashboard counts fetched successfully",
-//       total_courses: parseInt(totalCoursesResult.rows[0].total_courses, 10),
-//       my_courses: parseInt(myCoursesResult.rows[0].my_courses, 10),
-//       student_exams: parseInt(studentExamsResult.rows[0].student_exams, 10),
-//     });
-//   } catch (error) {
-//     console.error("Error in getStudentDashboardCounts:", error);
-//     return res.status(500).json({
-//       statusCode: 500,
-//       message: "Internal Server Error",
-//     });
-//   }
-// };
-
-
 exports.getStudentDashboardCounts = async (req, res) => {
   try {
     const { student_id } = req.body;
+
     if (!student_id) {
-      return res.status(400).json({ statusCode: 400, message: "Student ID is required" });
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Student ID is required",
+      });
     }
 
+    // Run all 3 queries in parallel
     const [totalCoursesResult, myCoursesResult, studentExamsResult] = await Promise.all([
       pool.query(`SELECT COUNT(*) AS total_courses FROM public.tbl_course`),
 
       pool.query(
-        `SELECT COUNT(DISTINCT course_id) AS my_courses
-         FROM public.tbl_student_course
+        `SELECT COUNT(*) AS my_courses 
+         FROM public.tbl_student_course 
          WHERE student_id = $1`,
         [student_id]
       ),
@@ -343,13 +298,13 @@ exports.getStudentDashboardCounts = async (req, res) => {
       pool.query(
         `SELECT COUNT(DISTINCT e.course_id) AS student_exams
          FROM public.tbl_exam e
-         INNER JOIN public.tbl_student_course sc ON e.course_id = sc.course_id
+         INNER JOIN public.tbl_student_course sc 
+           ON e.course_id = sc.course_id
          WHERE sc.student_id = $1
            AND e.course_id IS NOT NULL`,
         [student_id]
       ),
     ]);
-
 
     return res.status(200).json({
       statusCode: 200,
@@ -360,6 +315,11 @@ exports.getStudentDashboardCounts = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in getStudentDashboardCounts:", error);
-    return res.status(500).json({ statusCode: 500, message: "Internal Server Error" });
+    return res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
   }
 };
+
+ 
