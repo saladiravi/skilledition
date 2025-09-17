@@ -4,7 +4,7 @@ const dashboardController=require('../Controller/dashboardController');
 
 
 
- routes.get('/admindasboard',dashboardController.getAdminDashboardCounts);
+ routes.get('/admindashboard',dashboardController.getAdminDashboardCounts);
  routes.post('/tutordashboard',dashboardController.getTutorDashboardCounts);
  routes.post('/studentdashboard',dashboardController.getStudentDashboardCounts);
  
