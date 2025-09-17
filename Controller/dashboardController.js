@@ -286,12 +286,22 @@ exports.getStudentDashboardCounts = async (req, res) => {
 
     // Run all 3 queries in parallel
     const [totalCoursesResult, myCoursesResult, studentExamsResult] = await Promise.all([
-      pool.query(`SELECT COUNT(*) AS total_courses FROM public.tbl_course`),
+      pool.query(
+        `SELECT COUNT(*) AS total_courses
+         FROM public.tbl_course c
+         WHERE c.course_id NOT IN (
+           SELECT sc.course_id 
+           FROM public.tbl_student_course sc 
+           WHERE sc.student_id = $1
+         )`,
+        [student_id]
+      ),
 
+      // ✅ My courses (purchased by student)
       pool.query(
         `SELECT COUNT(*) AS my_courses 
-         FROM public.tbl_student_course 
-         WHERE student_id = $1`,
+         FROM public.tbl_student_course sc
+         WHERE sc.student_id = $1`,
         [student_id]
       ),
 
