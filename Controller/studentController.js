@@ -75,23 +75,25 @@ exports.studentlogin=async(req,res)=>{
 }
 
 
-exports.getallstudents=async(req,res)=>{
-    try{
-        const result=await pool.query('SELECT * FROM tbl_student');
-        if(result){
-            res.status(200).json({
-                statusCode:200,
-                message:'Student List',
-                students:result.rows
-            })
-        }
-    }catch(error){
-        res.status(500).json({
-            statusCode:500,
-            message:'Internal Server Error'
-        })
-    }
-}   
+exports.getallstudents = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM tbl_student ORDER BY student_id ASC`
+    );
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Student List",
+      students: result.rows,
+    });
+  } catch (error) {
+    console.error("Error in getallstudents:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  }
+};
 
 
 
