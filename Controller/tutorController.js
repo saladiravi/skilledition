@@ -79,23 +79,29 @@ exports.tutorlogin=async(req,res)=>{
 
 
 
-exports.getTutors=async(req,res)=>{
-    try{
-      const  result=await pool.query('SELECT * FROM tbl_tutor');
-      if(result){
-        return res.status(200).json({
-            statusCode:200,
-            message:'Tutor List',
-            tutor:result.rows
-        })
-      }
-    }catch(error){
-        res.status(500).json({
-            statusCode:500,
-            message:'Internal Server Error'
-        })
-    }
-}
+exports.getTutors = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * 
+      FROM tbl_tutor 
+      ORDER BY tutor_id ASC
+    `);
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: 'Tutor List',
+      tutor: result.rows
+    });
+
+  } catch (error) {
+    console.error("Error in getTutors:", error);
+    return res.status(500).json({
+      statusCode: 500,
+      message: 'Internal Server Error'
+    });
+  }
+};
+
 
 exports.updateTutor = async (req, res) => {
     const { tutor_id } = req.body;

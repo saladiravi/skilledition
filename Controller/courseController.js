@@ -541,31 +541,49 @@ exports.deleteCourse = async (req, res) => {
 };
 
 
+ 
 // exports.getCourseById = async (req, res) => {
 //   try {
 //     const { course_id } = req.body;
 
-//     const query = `
-//       SELECT 
-//         tc.course_id,
-//         tc.course_image,
-//         tc.course_title,
-//         tc.course_type,
-//         tc.course_description,
-//         tc.course_price,
-//         tc.tutor_id,
-//         t.name AS tutor_name,
-//         tvc.course_video_id,
-//         tvc.course_video_title,
-//         tvc.course_video,
-//         tvc.duration
-//       FROM tbl_course tc
-//       INNER JOIN tbl_course_videos tvc ON tc.course_id = tvc.course_id
-//       LEFT JOIN tbl_tutor t ON tc.tutor_id = t.tutor_id
-//       WHERE tc.course_id = $1
-//       ORDER BY tvc.course_video_id;
-//     `;
+//     const query = `SELECT 
+//     tc.course_id,
+//     tc.course_image,
+//     tc.course_title,
+//     tc.course_type,
+//     tc.course_description,
+//     tc.course_price,
+//     tc.tutor_id,
+//     t.name AS tutor_name,
 
+//     tvc.course_video_id,
+//     tvc.course_video_title,
+//     tvc.course_video,
+//     tvc.duration,
+
+//     te.exam_id,
+//     te.exam_name,
+
+//     teq.question_id,
+//     teq.question,
+//     teq.a,
+//     teq.b,
+//     teq.c,
+//     teq.d,
+//     teq.answer
+
+// FROM tbl_course tc
+// INNER JOIN tbl_course_videos tvc 
+//     ON tc.course_id = tvc.course_id
+// LEFT JOIN tbl_tutor t 
+//     ON tc.tutor_id = t.tutor_id
+// LEFT JOIN tbl_exam te 
+//     ON tvc.course_video_id = te.course_video_id
+// LEFT JOIN tbl_exam_question teq 
+//     ON te.exam_id = teq.exam_id
+// WHERE tc.course_id = $1
+// ORDER BY tvc.course_video_id, te.exam_id, teq.question_id;
+// `;
 //     const result = await pool.query(query, [course_id]);
 
 //     if (result.rows.length === 0) {
@@ -577,6 +595,7 @@ exports.deleteCourse = async (req, res) => {
 
 //     const row = result.rows[0];
 
+//     // Group data
 //     const course = {
 //       course_id: row.course_id,
 //       course_image: row.course_image,
@@ -588,23 +607,54 @@ exports.deleteCourse = async (req, res) => {
 //         tutor_id: row.tutor_id,
 //         tutor_name: row.tutor_name
 //       },
-      
-//       videos: result.rows.map(video => ({
-//         course_video_id:video.course_video_id,
-//         course_video_title: video.course_video_title,
-//         course_video: video.course_video,
-//         duration: video.duration
-//       })),
-//       examquestion:result.rows.map(video=>({
-//         course_video:video.course_video_id,
-        
-//       }))
+//       videos: []
 //     };
 
+//     const videoMap = new Map();
+
+//     result.rows.forEach(r => {
+//       if (!videoMap.has(r.course_video_id)) {
+//         videoMap.set(r.course_video_id, {
+//           course_video_id: r.course_video_id,
+//           course_video_title: r.course_video_title,
+//           course_video: r.course_video,
+//           duration: r.duration,
+//           exams: []
+//         });
+//         course.videos.push(videoMap.get(r.course_video_id));
+//       }
+
+//       if (r.exam_id) {
+//         let video = videoMap.get(r.course_video_id);
+
+//         let exam = video.exams.find(e => e.exam_id === r.exam_id);
+//         if (!exam) {
+//           exam = {
+//             exam_id: r.exam_id,
+//             exam_name: r.exam_name,
+//             questions: []
+//           };
+//           video.exams.push(exam);
+//         }
+
+//         if (r.question_id) {
+//           exam.questions.push({
+//             question_id: r.question_id,
+//             question: r.question,
+//             a: r.a,
+//             b: r.b,
+//             c: r.c,
+//             d: r.d,
+//             answer: r.answer
+//           });
+//         }
+//       }
+//     });
+
 //     res.json({
-//       statusCode:200,
-//       message:'Courses Fetched Sucessfully',
-//       course: course
+//       statusCode: 200,
+//       message: 'Course fetched successfully',
+//       course
 //     });
 
 //   } catch (error) {
@@ -615,54 +665,73 @@ exports.deleteCourse = async (req, res) => {
 //     });
 //   }
 // };
- exports.getCourseById = async (req, res) => {
+
+exports.getCourseById = async (req, res) => {
   try {
-    const { course_id } = req.body;
+    const { course_id, student_id } = req.body;
 
-    const query = `SELECT 
-    tc.course_id,
-    tc.course_image,
-    tc.course_title,
-    tc.course_type,
-    tc.course_description,
-    tc.course_price,
-    tc.tutor_id,
-    t.name AS tutor_name,
+    if (!course_id || !student_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "course_id and student_id are required"
+      });
+    }
 
-    tvc.course_video_id,
-    tvc.course_video_title,
-    tvc.course_video,
-    tvc.duration,
+    const query = `
+      SELECT 
+        tc.course_id,
+        tc.course_image,
+        tc.course_title,
+        tc.course_type,
+        tc.course_description,
+        tc.course_price,
+        tc.tutor_id,
+        t.name AS tutor_name,
 
-    te.exam_id,
-    te.exam_name,
+        tvc.course_video_id,
+        tvc.course_video_title,
+        tvc.course_video,
+        tvc.duration,
 
-    teq.question_id,
-    teq.question,
-    teq.a,
-    teq.b,
-    teq.c,
-    teq.d,
-    teq.answer
+        swv.student_watch_id,
+        swv.watched_at,
+        swv.status,
+        swv.progress,
 
-FROM tbl_course tc
-INNER JOIN tbl_course_videos tvc 
-    ON tc.course_id = tvc.course_id
-LEFT JOIN tbl_tutor t 
-    ON tc.tutor_id = t.tutor_id
-LEFT JOIN tbl_exam te 
-    ON tvc.course_video_id = te.course_video_id
-LEFT JOIN tbl_exam_question teq 
-    ON te.exam_id = teq.exam_id
-WHERE tc.course_id = $1
-ORDER BY tvc.course_video_id, te.exam_id, teq.question_id;
-`;
-    const result = await pool.query(query, [course_id]);
+        te.exam_id,
+        te.exam_name,
+
+        teq.question_id,
+        teq.question,
+        teq.a,
+        teq.b,
+        teq.c,
+        teq.d,
+        teq.answer
+
+      FROM tbl_course tc
+      INNER JOIN tbl_course_videos tvc 
+          ON tc.course_id = tvc.course_id
+      LEFT JOIN tbl_tutor t 
+          ON tc.tutor_id = t.tutor_id
+      LEFT JOIN tbl_exam te 
+          ON tvc.course_video_id = te.course_video_id
+      LEFT JOIN tbl_exam_question teq 
+          ON te.exam_id = teq.exam_id
+      LEFT JOIN tbl_studentwatchedvideos swv
+          ON swv.course_video_id = tvc.course_video_id 
+         AND swv.student_id = $2
+
+      WHERE tc.course_id = $1
+      ORDER BY tvc.course_video_id, te.exam_id, teq.question_id;
+    `;
+
+    const result = await pool.query(query, [course_id, student_id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({
         statusCode: 404,
-        message: 'Course not found'
+        message: "Course not found"
       });
     }
 
@@ -692,6 +761,10 @@ ORDER BY tvc.course_video_id, te.exam_id, teq.question_id;
           course_video_title: r.course_video_title,
           course_video: r.course_video,
           duration: r.duration,
+          is_watched: r.student_watch_id ? true : false,
+          watched_at: r.watched_at || null,
+          status:r.status,
+          progress:r.progress,
           exams: []
         });
         course.videos.push(videoMap.get(r.course_video_id));
@@ -726,19 +799,18 @@ ORDER BY tvc.course_video_id, te.exam_id, teq.question_id;
 
     res.json({
       statusCode: 200,
-      message: 'Course fetched successfully',
+      message: "Course fetched successfully",
       course
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Error in getCourseById:", error);
     res.status(500).json({
       statusCode: 500,
-      message: 'Internal Server Error'
+      message: "Internal Server Error"
     });
   }
 };
-
 
 exports.getCourseVideosById = async (req, res) => {
   try {
@@ -780,6 +852,43 @@ exports.getCourseVideosById = async (req, res) => {
   } catch (error) {
     console.error("Error fetching course video:", error);
     res.status(500).json({
+      statusCode: 500,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+
+exports.updateVideoWatchStatus = async (req, res) => {
+  try {
+    const { student_id, course_video_id, status, progress } = req.body;
+
+    if (!student_id || !course_video_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "student_id and course_video_id are required",
+      });
+    }
+
+    const query = `
+      INSERT INTO tbl_studentwatchedvideos (student_id, course_video_id, watched_at, status, progress)
+      VALUES ($1, $2, NOW(), $3, $4)
+      ON CONFLICT (student_id, course_video_id)
+      DO UPDATE SET status = EXCLUDED.status, progress = EXCLUDED.progress, watched_at = NOW()
+      RETURNING *;
+    `;
+
+    const result = await pool.query(query, [student_id, course_video_id, status || 'started', progress || 0]);
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Video watch status updated",
+      data: result.rows[0],
+    });
+
+  } catch (error) {
+    console.error("Error in updateVideoWatchStatus:", error);
+    return res.status(500).json({
       statusCode: 500,
       message: "Internal Server Error",
     });

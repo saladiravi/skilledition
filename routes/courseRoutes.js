@@ -17,6 +17,8 @@ routes.post(
 routes.post('/deleteCourse',courseController.deleteCourse);
 routes.post('/getcoursebyid',courseController.getCourseById);
 routes.post('/getcoursebytutor',courseController.getCoursesbytutor);
-routes.post('/getvideosbycourseVideoid',courseController.getCourseVideosById)
+routes.post('/getvideosbycourseVideoid',courseController.getCourseVideosById);   
+routes.post('/getcoursewatchedvideos',courseController.updateVideoWatchStatus);
+
 
 module.exports=routes
