@@ -19,6 +19,7 @@ routes.post('/getcoursebyid',courseController.getCourseById);
 routes.post('/getcoursebytutor',courseController.getCoursesbytutor);
 routes.post('/getvideosbycourseVideoid',courseController.getCourseVideosById);   
 routes.post('/addcoursewatchedvideos',courseController.updateVideoWatchStatus);
+routes.post('/getseencoursebyid',courseController.getCourseseenById);
 
 
 module.exports=routes

@@ -12,6 +12,7 @@ const login=require('./routes/loginroutes');
 const examresults=require('./routes/examresultroutes');
 const home=require('./routes/homeroutes')
 const dash=require('./routes/dashboardroutes');
+const grandtex=require('./routes/grandtextroutes');
 
 
 const app = express();
@@ -33,6 +34,8 @@ app.use('/loginapi',login);
 app.use('/examresult',examresults);
 app.use('/home',home);
 app.use('/dashboard',dash);
+app.use('/grandtext',grandtex);
+
 
 
 
