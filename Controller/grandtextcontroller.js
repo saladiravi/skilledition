@@ -1,8 +1,63 @@
 const pool = require('../db/db');
 
-exports.getExamsByCourseId = async (req, res) => {
+// exports.getExamsByCourseId = async (req, res) => {
+//   try {
+//     const { course_id } = req.body; // or req.params.course_id if you prefer
+
+//     if (!course_id) {
+//       return res.status(400).json({
+//         statusCode: 400,
+//         message: "course_id is required",
+//       });
+//     }
+
+//     const query = `
+//       SELECT 
+//           e.exam_id,
+//           e.exam_name,
+//           e.course_id,
+//           e.course_video_id,
+//           e.tutor_id,
+//           COALESCE(
+//             JSON_AGG(
+//               JSON_BUILD_OBJECT(
+//                 'question_id', q.question_id,
+//                 'question', q.question,
+//                 'a', q.a,
+//                 'b', q.b,
+//                 'c', q.c,
+//                 'd', q.d
+              
+//               )
+//             ) FILTER (WHERE q.question_id IS NOT NULL), '[]'
+//           ) AS questions
+//       FROM tbl_exam e
+//       LEFT JOIN tbl_exam_question q ON e.exam_id = q.exam_id
+//       WHERE e.course_id = $1
+//       GROUP BY e.exam_id, e.exam_name, e.course_id, e.course_video_id, e.tutor_id;
+//     `;
+
+//     const result = await pool.query(query, [course_id]);
+
+//     return res.status(200).json({
+//       statusCode: 200,
+//       message: "Exam list with questions",
+//       exams: result.rows,
+//     });
+
+//   } catch (error) {
+//     return res.status(500).json({
+//       statusCode: 500,
+//       message: "Internal Server Error",
+//     });
+//   }
+// };
+
+
+
+exports.getQuestionsByCourseId = async (req, res) => {
   try {
-    const { course_id } = req.body; // or req.params.course_id if you prefer
+    const { course_id } = req.body;
 
     if (!course_id) {
       return res.status(400).json({
@@ -13,47 +68,41 @@ exports.getExamsByCourseId = async (req, res) => {
 
     const query = `
       SELECT 
-          e.exam_id,
-          e.exam_name,
-          e.course_id,
-          e.course_video_id,
-          e.tutor_id,
-          COALESCE(
-            JSON_AGG(
-              JSON_BUILD_OBJECT(
-                'question_id', q.question_id,
-                'question', q.question,
-                'a', q.a,
-                'b', q.b,
-                'c', q.c,
-                'd', q.d
-              
-              )
-            ) FILTER (WHERE q.question_id IS NOT NULL), '[]'
-          ) AS questions
+          q.question_id,
+          q.question,
+          q.a,
+          q.b,
+          q.c,
+          q.d
       FROM tbl_exam e
-      LEFT JOIN tbl_exam_question q ON e.exam_id = q.exam_id
+      INNER JOIN tbl_exam_question q ON e.exam_id = q.exam_id
       WHERE e.course_id = $1
-      GROUP BY e.exam_id, e.exam_name, e.course_id, e.course_video_id, e.tutor_id;
+      ORDER BY q.question_id;
     `;
 
     const result = await pool.query(query, [course_id]);
 
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "No questions found for this course",
+      });
+    }
+
     return res.status(200).json({
       statusCode: 200,
-      message: "Exam list with questions",
-      exams: result.rows,
+      message: "Questions fetched successfully",
+      questions: result.rows,
     });
 
   } catch (error) {
-    console.error("Error in getExamsByCourseId:", error);
+    console.error("getQuestionsByCourseId error:", error);
     return res.status(500).json({
       statusCode: 500,
       message: "Internal Server Error",
     });
   }
 };
-
 
 exports.submitGrandTest = async (req, res) => {
   try {
