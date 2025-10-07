@@ -87,10 +87,12 @@ exports.buyStudentCourse = async (req, res) => {
       { request: data },
       { headers: { "Content-Type": "application/json", "X-VERIFY": checksum, "X-MERCHANT-ID": process.env.PHONEPE_MERCHANT_ID } }
     );
-
+    console.log("PhonePe response:", response.data);
     const paymentUrl = response.data?.data?.instrumentResponse?.redirectInfo?.url;
-    if (!paymentUrl) throw new Error("Unable to get payment URL from PhonePe");
-
+   if (!paymentUrl) {
+  console.error("Missing payment URL from PhonePe:", response.data);
+  return res.status(500).json({ statusCode: 500, message: "Failed to get payment URL from PhonePe" });
+}
     // 5️⃣ Return payment URL and transactionId
     return res.status(200).json({
       statusCode: 200,
