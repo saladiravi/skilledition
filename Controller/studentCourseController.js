@@ -55,29 +55,27 @@ exports.buyStudentCourse = async (req, res) => {
       });
     }
 
-    // Step 1: Generate a unique transaction ID
-    const merchantTransactionId = "TXN" + Date.now();
+    // Generate unique transaction ID
+    const transactionId = "TXN" + Date.now();
 
-    // Step 2: Create a pending record in DB (status = INITIATED)
+    // Insert pending record with INITIATED status
     const insertResult = await pool.query(
       `INSERT INTO public.tbl_student_course 
        (student_id, course_id, purchase_date, status, transaction_id)
        VALUES ($1, $2, NOW(), $3, $4) RETURNING *`,
-      [student_id, course_id, "INITIATED", merchantTransactionId]
+      [student_id, course_id, "INITIATED", transactionId]
     );
-    const newCourse = insertResult.rows[0];
+    const courseRecord = insertResult.rows[0];
 
-    // Step 3: Create payload for PhonePe API
+    // PhonePe payload
     const payload = {
       merchantId: process.env.PHONEPE_MERCHANT_ID,
-      merchantTransactionId,
+      merchantTransactionId: transactionId,
       merchantUserId: student_id.toString(),
-      amount: amount * 100, // convert ₹ to paise
+      amount: amount * 100, // in paise
       redirectUrl: `${process.env.BASE_URL}/payment/callback`,
       redirectMode: "POST",
-      paymentInstrument: {
-        type: "PAY_PAGE",
-      },
+      paymentInstrument: { type: "PAY_PAGE" },
     };
 
     const data = Buffer.from(JSON.stringify(payload)).toString("base64");
@@ -87,7 +85,7 @@ exports.buyStudentCourse = async (req, res) => {
       "###" +
       process.env.PHONEPE_SALT_INDEX;
 
-    // Step 4: Initiate payment request to PhonePe
+    // Call PhonePe API
     let response;
     try {
       response = await axios.post(
@@ -102,95 +100,36 @@ exports.buyStudentCourse = async (req, res) => {
         }
       );
     } catch (err) {
-      // Mark transaction as FAILED if PhonePe request fails
+      // Mark as FAILED if PhonePe fails
       await pool.query(
         `UPDATE public.tbl_student_course SET status=$1 WHERE transaction_id=$2`,
-        ["FAILED", merchantTransactionId]
+        ["FAILED", transactionId]
       );
       console.error("PhonePe API error:", err.response?.data || err.message);
-      return res.status(500).json({
-        statusCode: 500,
-        message: "Failed to initiate payment",
-      });
+      return res.status(500).json({ statusCode: 500, message: "Payment initiation failed" });
     }
 
-    // Step 5: Return payment URL to frontend
-    const paymentUrl =
-      response.data?.data?.instrumentResponse?.redirectInfo?.url;
-
+    // Get redirect URL
+    const paymentUrl = response.data?.data?.instrumentResponse?.redirectInfo?.url;
     if (!paymentUrl) {
-      // Mark transaction as FAILED if URL not returned
       await pool.query(
         `UPDATE public.tbl_student_course SET status=$1 WHERE transaction_id=$2`,
-        ["FAILED", merchantTransactionId]
+        ["FAILED", transactionId]
       );
-      return res.status(500).json({
-        statusCode: 500,
-        message: "Unable to get payment URL",
-      });
+      return res.status(500).json({ statusCode: 500, message: "Unable to get payment URL" });
     }
 
+    // Return payment URL directly to frontend
     return res.status(200).json({
       statusCode: 200,
       message: "Redirect to PhonePe Payment Page",
       paymentUrl,
-      transactionId: newCourse.transaction_id,
-      course: newCourse, // optional, info for frontend
+      transactionId,
+      course: courseRecord,
     });
   } catch (error) {
     console.error("Error in buyStudentCourse:", error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: "Internal Server Error",
-    });
-  }
-};
-
-exports.paymentCallback = async (req, res) => {
-  try {
-    console.log("Payment callback body:", req.body); // for debugging
-    const { transactionId, code } = req.body;
-
-    if (!transactionId) {
-      return res.status(400).send("transactionId missing in callback");
-    }
-
-    const path = `/pg/v1/status/${process.env.PHONEPE_MERCHANT_ID}/${transactionId}`;
-    const stringToSign = path + process.env.PHONEPE_SALT_KEY;
-    const checksum =
-      crypto.createHash("sha256").update(stringToSign).digest("hex") +
-      "###" +
-      process.env.PHONEPE_SALT_INDEX;
-
-    const response = await axios.get(`${process.env.PHONEPE_BASE_URL}${path}`, {
-      headers: {
-        "X-VERIFY": checksum,
-        "X-MERCHANT-ID": process.env.PHONEPE_MERCHANT_ID,
-      },
-    });
-
-    const paymentData = response.data;
-
-    if (paymentData.success && paymentData.data.state === "COMPLETED") {
-      await pool.query(
-        `UPDATE public.tbl_student_course 
-         SET status = $1, purchase_date = NOW() 
-         WHERE transaction_id = $2`,
-        ["SUCCESS", transactionId]
-      );
-    } else {
-      await pool.query(
-        `UPDATE public.tbl_student_course 
-         SET status = $1 
-         WHERE transaction_id = $2`,
-        ["FAILED", transactionId]
-      );
-    }
-
-    res.status(200).send("Payment callback received");
-  } catch (error) {
-    console.error("Error in payment callback:", error);
-    res.status(500).send("Callback error");
+    return res.status(500).json({ statusCode: 500, message: "Internal Server Error" });
   }
 };
 

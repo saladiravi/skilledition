@@ -8,7 +8,6 @@ routes.post('/getstudentmycourse',stundentCourse.getStudentCourseByid);
 routes.post('/getstudentcourse',stundentCourse.getCourses);
 
 
-routes.post("/payment/callback", stundentCourse.paymentCallback);
-
+ 
  
 module.exports=routes  
