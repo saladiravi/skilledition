@@ -1,44 +1,122 @@
 const pool= require('../db/db');
 
+// exports.buyStudentCourse = async (req, res) => {
+//   try {
+//     const { student_id, course_id, purchase_date } = req.body;
+
+//     if (!student_id || !course_id) {
+//       return res.status(400).json({
+//         statusCode: 400,
+//         message: 'Student ID and Course ID are required',
+//       });
+//     }
+
+//     const coursestudent = await pool.query(
+//       `INSERT INTO public.tbl_student_course (student_id, course_id, purchase_date) 
+//        VALUES ($1, $2, $3) 
+//        RETURNING *`,
+//       [student_id, course_id, purchase_date]
+//     );
+
+//     if (coursestudent.rows.length > 0) {
+//       return res.status(200).json({
+//         statusCode: 200,
+//         message: 'Course purchased successfully',
+//         buycourse: coursestudent.rows[0],  // returning the inserted row
+//       });
+//     } else {
+//       return res.status(500).json({
+//         statusCode: 500,
+//         message: 'Course purchase failed',
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error in buyStudentCourse:', error);
+//     return res.status(500).json({
+//       statusCode: 500,
+//       message: 'Internal Server Error',
+//     });
+//   }
+// };
+
 exports.buyStudentCourse = async (req, res) => {
   try {
-    const { student_id, course_id, purchase_date } = req.body;
+    const { student_id, course_id, amount } = req.body;
 
-    if (!student_id || !course_id) {
+    if (!student_id || !course_id || !amount) {
       return res.status(400).json({
         statusCode: 400,
-        message: 'Student ID and Course ID are required',
+        message: "Student ID, Course ID, and Amount are required",
       });
     }
 
-    const coursestudent = await pool.query(
-      `INSERT INTO public.tbl_student_course (student_id, course_id, purchase_date) 
-       VALUES ($1, $2, $3) 
-       RETURNING *`,
-      [student_id, course_id, purchase_date]
+    // Step 1: Generate a unique transaction ID
+    const merchantTransactionId = "TXN" + Date.now();
+
+    // Step 2: Create a pending record in DB (status = INITIATED)
+    await pool.query(
+      `INSERT INTO public.tbl_student_course (student_id, course_id, purchase_date, status, transaction_id)
+       VALUES ($1, $2, NOW(), $3, $4)`,
+      [student_id, course_id, "INITIATED", merchantTransactionId]
     );
 
-    if (coursestudent.rows.length > 0) {
+    // Step 3: Create payload for PhonePe API
+    const payload = {
+      merchantId: process.env.PHONEPE_MERCHANT_ID,
+      merchantTransactionId,
+      merchantUserId: student_id.toString(),
+      amount: amount * 100, // convert ₹ to paise
+      redirectUrl: `${process.env.BASE_URL}/payment/callback`,
+      redirectMode: "POST",
+      paymentInstrument: {
+        type: "PAY_PAGE",
+      },
+    };
+
+    const data = Buffer.from(JSON.stringify(payload)).toString("base64");
+
+    const stringToSign = data + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY;
+    const checksum =
+      crypto.createHash("sha256").update(stringToSign).digest("hex") +
+      "###" +
+      process.env.PHONEPE_SALT_INDEX;
+
+    // Step 4: Initiate payment request to PhonePe
+    const response = await axios.post(
+      `${process.env.PHONEPE_BASE_URL}/pg/v1/pay`,
+      { request: data },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-VERIFY": checksum,
+          "X-MERCHANT-ID": process.env.PHONEPE_MERCHANT_ID,
+        },
+      }
+    );
+
+    // Step 5: Return payment URL to frontend
+    const paymentUrl = response.data?.data?.instrumentResponse?.redirectInfo?.url;
+    if (paymentUrl) {
       return res.status(200).json({
         statusCode: 200,
-        message: 'Course purchased successfully',
-        buycourse: coursestudent.rows[0],  // returning the inserted row
+        message: "Redirect to PhonePe Payment Page",
+        paymentUrl,
+        transactionId: merchantTransactionId,
       });
     } else {
       return res.status(500).json({
         statusCode: 500,
-        message: 'Course purchase failed',
+        message: "Unable to get payment URL",
       });
     }
   } catch (error) {
-    console.error('Error in buyStudentCourse:', error);
+    console.error("Error in buyStudentCourse:", error);
     return res.status(500).json({
       statusCode: 500,
-      message: 'Internal Server Error',
+      message: "Internal Server Error",
     });
   }
 };
-
 
 exports.getStudentCourse =async(req,res)=>{
     try{
