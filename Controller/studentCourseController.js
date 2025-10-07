@@ -1,4 +1,7 @@
 const pool= require('../db/db');
+const crypto = require("crypto");
+const axios = require("axios");
+require("dotenv").config();
 
 // exports.buyStudentCourse = async (req, res) => {
 //   try {
