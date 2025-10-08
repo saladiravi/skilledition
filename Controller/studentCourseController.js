@@ -4,48 +4,6 @@ const axios = require("axios");
 require("dotenv").config();
 const uniqid = require("uniqid");
 
-exports.buyStudentCourse = async (req, res) => {
-  try {
-    const { student_id, course_id, purchase_date } = req.body;
-
-    if (!student_id || !course_id) {
-      return res.status(400).json({
-        statusCode: 400,
-        message: 'Student ID and Course ID are required',
-      });
-    }
-
-    const coursestudent = await pool.query(
-      `INSERT INTO public.tbl_student_course (student_id, course_id, purchase_date) 
-       VALUES ($1, $2, $3) 
-       RETURNING *`,
-      [student_id, course_id, purchase_date]
-    );
-
-    if (coursestudent.rows.length > 0) {
-      return res.status(200).json({
-        statusCode: 200,
-        message: 'Course purchased successfully',
-        buycourse: coursestudent.rows[0],  // returning the inserted row
-      });
-    } else {
-      return res.status(500).json({
-        statusCode: 500,
-        message: 'Course purchase failed',
-      });
-    }
-  } catch (error) {
-    console.error('Error in buyStudentCourse:', error);
-    return res.status(500).json({
-      statusCode: 500,
-      message: 'Internal Server Error',
-    });
-  }
-};
-
-
-
-
 
 const PHONEPE_HOST_URL = "https://api.phonepe.com/apis/hermes";  // ✅ LIVE URL
 const MERCHANT_ID = "M22TWMAY10FVB";
@@ -107,6 +65,50 @@ exports.initiatePayment = async (req, res) => {
     return res.status(500).json({ error: error.response?.data || error.message });
   }
 };
+
+exports.buyStudentCourse = async (req, res) => {
+  try {
+    const { student_id, course_id, purchase_date } = req.body;
+
+    if (!student_id || !course_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: 'Student ID and Course ID are required',
+      });
+    }
+
+    const coursestudent = await pool.query(
+      `INSERT INTO public.tbl_student_course (student_id, course_id, purchase_date) 
+       VALUES ($1, $2, $3) 
+       RETURNING *`,
+      [student_id, course_id, purchase_date]
+    );
+
+    if (coursestudent.rows.length > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        message: 'Course purchased successfully',
+        buycourse: coursestudent.rows[0],  // returning the inserted row
+      });
+    } else {
+      return res.status(500).json({
+        statusCode: 500,
+        message: 'Course purchase failed',
+      });
+    }
+  } catch (error) {
+    console.error('Error in buyStudentCourse:', error);
+    return res.status(500).json({
+      statusCode: 500,
+      message: 'Internal Server Error',
+    });
+  }
+};
+
+
+
+
+
 
 exports.paymentCallback = async (req, res) => {
   console.log("📩 Callback data received:", req.body);
