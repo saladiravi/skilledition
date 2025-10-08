@@ -12,59 +12,59 @@ const SALT_INDEX = "1";
 
 const staticamt=100
 
-exports.initiatePayment = async (req, res) => {
-  try {
-    const { student_id, course_id } = req.body;
-    if (!student_id || !course_id ) {
-      return res.status(400).json({
-        statusCode: 400,
-        message: "student_id, course_id, and amount are required",
-      });
-    }
+// exports.initiatePayment = async (req, res) => {
+//   try {
+//     const { student_id, course_id } = req.body;
+//     if (!student_id || !course_id ) {
+//       return res.status(400).json({
+//         statusCode: 400,
+//         message: "student_id, course_id, and amount are required",
+//       });
+//     }
 
-    const merchantTransactionId = uniqid(); // Unique ID for this payment
-    const payEndpoint = "/pg/v1/pay";
+//     const merchantTransactionId = uniqid(); // Unique ID for this payment
+//     const payEndpoint = "/pg/v1/pay";
 
-    const payload = {
-      merchantId: MERCHANT_ID,
-      merchantTransactionId: merchantTransactionId,
-      merchantUserId: "MUID" + student_id,
-      amount: staticamt * 100, // convert ₹ to paise
-      redirectUrl: `https://api.skilledition.in/payment/redirect/${merchantTransactionId}`,
-      redirectMode: "REDIRECT",
-      callbackUrl: `https://api.skilledition.in/payment/callback`,
-      mobileNumber: "9951196669",
-      paymentInstrument: { type: "PAY_PAGE" },
-    };
+//     const payload = {
+//       merchantId: MERCHANT_ID,
+//       merchantTransactionId: merchantTransactionId,
+//       merchantUserId: "MUID" + student_id,
+//       amount: staticamt * 100, // convert ₹ to paise
+//       redirectUrl: `https://api.skilledition.in/payment/redirect/${merchantTransactionId}`,
+//       redirectMode: "REDIRECT",
+//       callbackUrl: `https://api.skilledition.in/payment/callback`,
+//       mobileNumber: "9951196669",
+//       paymentInstrument: { type: "PAY_PAGE" },
+//     };
 
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-    const stringToSign = base64Payload + payEndpoint + SALT_KEY;
-    const xVerify = crypto
-      .createHash("sha256")
-      .update(stringToSign)
-      .digest("hex") + "###" + SALT_INDEX;
+//     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
+//     const stringToSign = base64Payload + payEndpoint + SALT_KEY;
+//     const xVerify = crypto
+//       .createHash("sha256")
+//       .update(stringToSign)
+//       .digest("hex") + "###" + SALT_INDEX;
 
-    const response = await axios.post(
-      `${PHONEPE_HOST_URL}${payEndpoint}`,
-      { request: base64Payload },
-      {
-        headers: {
-          accept: "application/json",
-          "Content-Type": "application/json",
-          "X-VERIFY": xVerify,
-          "X-MERCHANT-ID": MERCHANT_ID,
-        },
-      }
-    );
+//     const response = await axios.post(
+//       `${PHONEPE_HOST_URL}${payEndpoint}`,
+//       { request: base64Payload },
+//       {
+//         headers: {
+//           accept: "application/json",
+//           "Content-Type": "application/json",
+//           "X-VERIFY": xVerify,
+//           "X-MERCHANT-ID": MERCHANT_ID,
+//         },
+//       }
+//     );
 
-    console.log("✅ PhonePe Response:", response.data);
-    const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
-    return res.json({ redirectUrl });
-  } catch (error) {
-    console.error("❌ Error in initiatePayment:", error.response?.data || error.message);
-    return res.status(500).json({ error: error.response?.data || error.message });
-  }
-};
+//     console.log("✅ PhonePe Response:", response.data);
+//     const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
+//     return res.json({ redirectUrl });
+//   } catch (error) {
+//     console.error("❌ Error in initiatePayment:", error.response?.data || error.message);
+//     return res.status(500).json({ error: error.response?.data || error.message });
+//   }
+// };
 
 exports.buyStudentCourse = async (req, res) => {
   try {
