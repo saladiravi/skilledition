@@ -19,7 +19,21 @@ const app = express();
 
 
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
+const corsOptions = {
+    origin: 'https://skilledition.in', // frontend URL
+    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization'],
+    credentials: true
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight OPTIONS requests for all routes
+app.options('*', (req, res) => {
+    res.sendStatus(200);
+});
+
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
