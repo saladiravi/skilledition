@@ -2,111 +2,121 @@ const pool= require('../db/db');
 const crypto = require("crypto");
 const axios = require("axios");
 require("dotenv").config();
-
-// exports.buyStudentCourse = async (req, res) => {
-//   try {
-//     const { student_id, course_id, purchase_date } = req.body;
-
-//     if (!student_id || !course_id) {
-//       return res.status(400).json({
-//         statusCode: 400,
-//         message: 'Student ID and Course ID are required',
-//       });
-//     }
-
-//     const coursestudent = await pool.query(
-//       `INSERT INTO public.tbl_student_course (student_id, course_id, purchase_date) 
-//        VALUES ($1, $2, $3) 
-//        RETURNING *`,
-//       [student_id, course_id, purchase_date]
-//     );
-
-//     if (coursestudent.rows.length > 0) {
-//       return res.status(200).json({
-//         statusCode: 200,
-//         message: 'Course purchased successfully',
-//         buycourse: coursestudent.rows[0],  // returning the inserted row
-//       });
-//     } else {
-//       return res.status(500).json({
-//         statusCode: 500,
-//         message: 'Course purchase failed',
-//       });
-//     }
-//   } catch (error) {
-//     console.error('Error in buyStudentCourse:', error);
-//     return res.status(500).json({
-//       statusCode: 500,
-//       message: 'Internal Server Error',
-//     });
-//   }
-// };
-
- 
-
-const axios = require("axios");
-const crypto = require("crypto");
-const { pool } = require("../db/db");
+const uniqid = require("uniqid");
 
 exports.buyStudentCourse = async (req, res) => {
   try {
-    const { student_id, course_id, amount } = req.body;
-    if (!student_id || !course_id || !amount)
-      return res.status(400).json({ statusCode: 400, message: "Student ID, Course ID, and Amount are required" });
+    const { student_id, course_id, purchase_date } = req.body;
 
-    // 1️⃣ Generate transactionId
-    const transactionId = "TXN" + Date.now();
+    if (!student_id || !course_id) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: 'Student ID and Course ID are required',
+      });
+    }
 
-    // 2️⃣ Insert pending record in DB
-    const insertResult = await pool.query(
-      `INSERT INTO public.tbl_student_course 
-       (student_id, course_id, purchase_date, status, transaction_id)
-       VALUES ($1,$2,NOW(),$3,$4) RETURNING *`,
-      [student_id, course_id, "INITIATED", transactionId]
+    const coursestudent = await pool.query(
+      `INSERT INTO public.tbl_student_course (student_id, course_id, purchase_date) 
+       VALUES ($1, $2, $3) 
+       RETURNING *`,
+      [student_id, course_id, purchase_date]
     );
-    const courseRecord = insertResult.rows[0];
 
-    // 3️⃣ PhonePe payload
-    const payload = {
-      merchantId: process.env.PHONEPE_MERCHANT_ID,
-      merchantTransactionId: transactionId,
-      merchantUserId: student_id.toString(),
-      amount: amount * 100,
-      redirectUrl: `${process.env.BASE_URL}/payment/callback`,
-      redirectMode: "POST",
-      paymentInstrument: { type: "PAY_PAGE" }
-    };
-
-    const data = Buffer.from(JSON.stringify(payload)).toString("base64");
-    const stringToSign = data + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY;
-    const checksum = crypto.createHash("sha256").update(stringToSign).digest("hex") + "###" + process.env.PHONEPE_SALT_INDEX;
-
-    // 4️⃣ Call PhonePe API
-    const response = await axios.post(
-      `${process.env.PHONEPE_BASE_URL}/pg/v1/pay`,
-      { request: data },
-      { headers: { "Content-Type": "application/json", "X-VERIFY": checksum, "X-MERCHANT-ID": process.env.PHONEPE_MERCHANT_ID } }
-    );
-    console.log("PhonePe response:", response.data);
-    const paymentUrl = response.data?.data?.instrumentResponse?.redirectInfo?.url;
-   if (!paymentUrl) {
-  console.error("Missing payment URL from PhonePe:", response.data);
-  return res.status(500).json({ statusCode: 500, message: "Failed to get payment URL from PhonePe" });
-}
-    // 5️⃣ Return payment URL and transactionId
-    return res.status(200).json({
-      statusCode: 200,
-      message: "Redirect to PhonePe Payment Page",
-      paymentUrl,
-      transactionId,
-      course: courseRecord
-    });
-
+    if (coursestudent.rows.length > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        message: 'Course purchased successfully',
+        buycourse: coursestudent.rows[0],  // returning the inserted row
+      });
+    } else {
+      return res.status(500).json({
+        statusCode: 500,
+        message: 'Course purchase failed',
+      });
+    }
   } catch (error) {
-    console.error("buyStudentCourse error:", error);
-    return res.status(500).json({ statusCode: 500, message: "Internal Server Error" });
+    console.error('Error in buyStudentCourse:', error);
+    return res.status(500).json({
+      statusCode: 500,
+      message: 'Internal Server Error',
+    });
   }
 };
+
+
+
+
+
+const PHONEPE_HOST_URL = "https://api.phonepe.com/apis/hermes";  // ✅ LIVE URL
+const MERCHANT_ID = "M22TWMAY10FVB";
+const SALT_KEY = "d1777065-5681-4e66-8c8d-9652b025cb96";
+const SALT_INDEX = "1";
+
+const staticamt=100
+
+exports.initiatePayment = async (req, res) => {
+  try {
+    const { student_id, course_id } = req.body;
+    if (!student_id || !course_id ) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "student_id, course_id, and amount are required",
+      });
+    }
+
+    const merchantTransactionId = uniqid(); // Unique ID for this payment
+    const payEndpoint = "/pg/v1/pay";
+
+    const payload = {
+      merchantId: MERCHANT_ID,
+      merchantTransactionId: merchantTransactionId,
+      merchantUserId: "MUID" + student_id,
+      amount: staticamt * 100, // convert ₹ to paise
+      redirectUrl: `https://api.skilledition.in/payment/redirect/${merchantTransactionId}`,
+      redirectMode: "REDIRECT",
+      callbackUrl: `https://api.skilledition.in/payment/callback`,
+      mobileNumber: "9951196669",
+      paymentInstrument: { type: "PAY_PAGE" },
+    };
+
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
+    const stringToSign = base64Payload + payEndpoint + SALT_KEY;
+    const xVerify = crypto
+      .createHash("sha256")
+      .update(stringToSign)
+      .digest("hex") + "###" + SALT_INDEX;
+
+    const response = await axios.post(
+      `${PHONEPE_HOST_URL}${payEndpoint}`,
+      { request: base64Payload },
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          "X-VERIFY": xVerify,
+          "X-MERCHANT-ID": MERCHANT_ID,
+        },
+      }
+    );
+
+    console.log("✅ PhonePe Response:", response.data);
+    const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
+    return res.json({ redirectUrl });
+  } catch (error) {
+    console.error("❌ Error in initiatePayment:", error.response?.data || error.message);
+    return res.status(500).json({ error: error.response?.data || error.message });
+  }
+};
+
+exports.paymentCallback = async (req, res) => {
+  console.log("📩 Callback data received:", req.body);
+  // TODO: You can verify payment status here or redirect user to success page
+  res.send("Payment callback received successfully!");
+};
+
+ 
+
+
 
 
 
