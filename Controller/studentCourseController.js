@@ -10,7 +10,7 @@ const MERCHANT_ID = "M22TWMAY10FVB";
 const SALT_KEY = "d1777065-5681-4e66-8c8d-9652b025cb96";
 const SALT_INDEX = "1";
 
-const staticamt=100
+const staticamt=1
 
 exports.initiatePayment = async (req, res) => {
   try {
@@ -24,6 +24,12 @@ exports.initiatePayment = async (req, res) => {
 
     const merchantTransactionId = uniqid(); // Unique ID for this payment
     const payEndpoint = "/pg/v1/pay";
+
+     await pool.query(
+      `INSERT INTO tbl_student_course (student_id, course_id, purchase_date, transaction_id, status) 
+       VALUES ($1, $2, CURRENT_DATE, $3, 'PENDING')`,
+      [student_id, course_id, merchantTransactionId]
+    );
 
     const payload = {
       merchantId: MERCHANT_ID,
@@ -59,7 +65,11 @@ exports.initiatePayment = async (req, res) => {
 
     console.log("✅ PhonePe Response:", response.data);
     const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
-    return res.json({ redirectUrl });
+    return res.json({ 
+       statusCode: 200,
+      paymentUrl: redirectUrl,
+       transactionId: merchantTransactionId,
+    });
   } catch (error) {
     console.error("❌ Error in initiatePayment:", error.response?.data || error.message);
     return res.status(500).json({ error: error.response?.data || error.message });
@@ -111,10 +121,39 @@ exports.buyStudentCourse = async (req, res) => {
 
 
 exports.paymentCallback = async (req, res) => {
-  console.log("📩 Callback data received:", req.body);
-  // TODO: You can verify payment status here or redirect user to success page
-  res.send("Payment callback received successfully!");
+  try {
+    console.log("📥 PhonePe Callback Data:", req.body);
+
+    const { merchantTransactionId } = req.body.data;
+    const status = req.body.code; // Check status code
+
+    if (status === "PAYMENT_SUCCESS") {
+      // ✅ Payment successful
+      // Update your DB: mark order as paid
+      await pool.query(
+        `UPDATE tbl_student_course 
+         SET status = 'SUCCESS'
+         WHERE transaction_id = $1`,
+        [merchantTransactionId]
+      );
+    } else {
+      // ❌ Payment failed
+      await pool.query(
+        `UPDATE tbl_student_course 
+         SET status = 'FAILED'
+         WHERE transaction_id = $1`,
+        [merchantTransactionId]
+      );
+    }
+
+    // Always respond with success message to PhonePe
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("❌ Error in paymentCallback:", error);
+    return res.status(500).json({ success: false });
+  }
 };
+
 
  
 
