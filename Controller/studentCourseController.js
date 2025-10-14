@@ -36,7 +36,7 @@ exports.initiatePayment = async (req, res) => {
       merchantTransactionId: merchantTransactionId,
       merchantUserId: "MUID" + student_id,
       amount: staticamt * 100, // convert ₹ to paise
-      redirectUrl: `https://api.skilledition.in/payment/redirect/${merchantTransactionId}`,
+      redirectUrl: `https://api.skilledition.in/studentcourse/payment/redirect/${merchantTransactionId}`,
       redirectMode: "REDIRECT",
       callbackUrl: `https://api.skilledition.in/payment/callback`,
       mobileNumber: "9951196669",
