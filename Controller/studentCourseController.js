@@ -43,36 +43,25 @@ exports.initiatePayment = async (req, res) => {
       paymentInstrument: { type: "PAY_PAGE" },
     };
 
-  //   const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-  //   const stringToSign = base64Payload + payEndpoint ;
-  //  const xVerify = crypto
-  // .createHmac("sha256", SALT_KEY)
-  // .update(stringToSign)
-  // .digest("hex") + "###" + SALT_INDEX;
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
+    const stringToSign = base64Payload + payEndpoint + SALT_KEY;
+    const xVerify = crypto
+      .createHash("sha256")
+      .update(stringToSign)
+      .digest("hex") + "###" + SALT_INDEX;
 
-  const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-
-// HMAC-SHA256 signing
-const stringToSign = base64Payload + payEndpoint;
-const hmac = crypto.createHmac('sha256', SALT_KEY)
-                   .update(stringToSign)
-                   .digest('hex');
-const xVerify = `${hmac}###${SALT_INDEX}`;
-
-
-  const response = await axios.post(
-  `${PHONEPE_HOST_URL}${payEndpoint}`,
-  { request: base64Payload },
-  {
-    headers: {
-      accept: "application/json",
-      "Content-Type": "application/json",
-      "X-VERIFY": xVerify,
-      "X-MERCHANT-ID": MERCHANT_ID,
-    },
-  }
-);
-
+    const response = await axios.post(
+      `${PHONEPE_HOST_URL}${payEndpoint}`,
+      { request: base64Payload },
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          "X-VERIFY": xVerify,
+          "X-MERCHANT-ID": MERCHANT_ID,
+        },
+      }
+    );
 
     console.log("✅ PhonePe Response:", response.data);
     const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
