@@ -1,6 +1,7 @@
 const express=require('express');
 const routes=express.Router();
 const stundentCourse=require('../Controller/studentCourseController');
+const pool=require('../db/db');
 
 routes.post('/buyCourse',stundentCourse.buyStudentCourse);
 routes.get('/getstudentCourses',stundentCourse.getStudentCourse);
