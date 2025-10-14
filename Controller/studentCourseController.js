@@ -44,11 +44,11 @@ exports.initiatePayment = async (req, res) => {
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-    const stringToSign = base64Payload + payEndpoint + SALT_KEY;
-    const xVerify = crypto
-      .createHash("sha256")
-      .update(stringToSign)
-      .digest("hex") + "###" + SALT_INDEX;
+    const stringToSign = base64Payload + payEndpoint ;
+   const xVerify = crypto
+  .createHmac("sha256", SALT_KEY)
+  .update(stringToSign)
+  .digest("hex") + "###" + SALT_INDEX;
 
     const response = await axios.post(
       `${PHONEPE_HOST_URL}${payEndpoint}`,
