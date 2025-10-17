@@ -75,7 +75,7 @@ exports.initiatePayment = async (req, res) => {
     };
 
     // 6️⃣ Create order in Cashfree
-    const response = await axios.post(CASHFREE_BASE_URL, payload, { headers });
+    const response = await axios.post(CASHFREE_ORDER_URL, payload, { headers });
 
     console.log("✅ Cashfree Response:", response.data);
 
