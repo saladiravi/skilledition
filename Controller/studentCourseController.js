@@ -69,13 +69,13 @@ exports.initiatePayment = async (req, res) => {
     const headers = {
       accept: "application/json",
       "content-type": "application/json",
-      "x-client-id": process.env.CASHFREE_APP_ID,
-      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+      "x-client-id": CASHFREE_APP_ID,
+      "x-client-secret": CASHFREE_SECRET_KEY,
       "x-api-version": "2022-09-01"
     };
 
     // 6️⃣ Create order in Cashfree
-    const response = await axios.post(process.env.CASHFREE_BASE_URL, payload, { headers });
+    const response = await axios.post(CASHFREE_BASE_URL, payload, { headers });
 
     console.log("✅ Cashfree Response:", response.data);
 
