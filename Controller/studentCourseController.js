@@ -5,9 +5,9 @@ require("dotenv").config();
 const uniqid = require("uniqid");
 
 
-const CASHFREE_APP_ID = "1104381ec55e9418f71b82e7d981834011";
-const CASHFREE_SECRET_KEY = "cfsk_ma_prod_ed064a3bbb63197a83170824efe3899f_5";
-const CASHFREE_BASE_URL = "https://api.cashfree.com/pg/orders";
+const CASHFREE_APP_ID = "TEST10843648c9658f3fbd8275c5da4584634801";
+const CASHFREE_SECRET_KEY = "cfsk_ma_test_c819a5d92c9fddaa28eed03112cab209_178d810e";
+const CASHFREE_BASE_URL = "https://sandbox.cashfree.com/pg";
 
 const staticamt=1
 
