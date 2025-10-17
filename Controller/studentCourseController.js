@@ -7,9 +7,9 @@ const uniqid = require("uniqid");
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY
-const CASHFREE_BASE_URL = process.env.CASHFREE_BASE_URL
+const CASHFREE_ORDER_URL = `${process.env.CASHFREE_BASE_URL}/orders`;
 
-const staticamt=1
+ 
 
 exports.initiatePayment = async (req, res) => {
   try {
@@ -75,7 +75,7 @@ exports.initiatePayment = async (req, res) => {
     };
 
     // 6️⃣ Create order in Cashfree
-    const response = await axios.post(process.env.CASHFREE_BASE_URL, payload, { headers });
+    const response = await axios.post(CASHFREE_BASE_URL, payload, { headers });
 
     console.log("✅ Cashfree Response:", response.data);
 
