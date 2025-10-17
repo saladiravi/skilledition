@@ -71,7 +71,7 @@ exports.initiatePayment = async (req, res) => {
       "content-type": "application/json",
       "x-client-id": CASHFREE_APP_ID,
       "x-client-secret": CASHFREE_SECRET_KEY,
-      "x-api-version": "2022-09-01"
+      "x-api-version": "2023-08-01"
     };
 
     // 6️⃣ Create order in Cashfree
