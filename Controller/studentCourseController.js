@@ -5,9 +5,9 @@ require("dotenv").config();
 const uniqid = require("uniqid");
 
 
-const CASHFREE_APP_ID = "TEST10843648c9658f3fbd8275c5da4584634801";
-const CASHFREE_SECRET_KEY = "cfsk_ma_test_c819a5d92c9fddaa28eed03112cab209_178d810e";
-const CASHFREE_BASE_URL = "https://sandbox.cashfree.com/pg";
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY
+const CASHFREE_BASE_URL = process.env.CASHFREE_BASE_URL
 
 const staticamt=1
 
@@ -69,13 +69,13 @@ exports.initiatePayment = async (req, res) => {
     const headers = {
       accept: "application/json",
       "content-type": "application/json",
-      "x-client-id": CASHFREE_APP_ID,
-      "x-client-secret": CASHFREE_SECRET_KEY,
+      "x-client-id": process.env.CASHFREE_APP_ID,
+      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
       "x-api-version": "2025-01-01"
     };
 
     // 6️⃣ Create order in Cashfree
-    const response = await axios.post(CASHFREE_BASE_URL, payload, { headers });
+    const response = await axios.post(process.env.CASHFREE_BASE_URL, payload, { headers });
 
     console.log("✅ Cashfree Response:", response.data);
 
