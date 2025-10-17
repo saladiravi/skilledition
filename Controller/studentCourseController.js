@@ -5,76 +5,94 @@ require("dotenv").config();
 const uniqid = require("uniqid");
 
 
-const PHONEPE_HOST_URL = "https://api.phonepe.com/apis/hermes";  // ✅ LIVE URL
-const MERCHANT_ID = "M22TWMAY10FVB";
-const SALT_KEY = "d1777065-5681-4e66-8c8d-9652b025cb96";
-const SALT_INDEX = "1";
+const CASHFREE_APP_ID = "1104381ec55e9418f71b82e7d981834011";
+const CASHFREE_SECRET_KEY = "cfsk_ma_prod_ed064a3bbb63197a83170824efe3899f_5";
+const CASHFREE_BASE_URL = "https://api.cashfree.com/pg/orders";
 
 const staticamt=1
 
 exports.initiatePayment = async (req, res) => {
   try {
-    const { student_id, course_id } = req.body;
-    if (!student_id || !course_id ) {
+    const { student_id, course_id, amount } = req.body;
+    if (!student_id || !course_id || !amount) {
       return res.status(400).json({
         statusCode: 400,
         message: "student_id, course_id, and amount are required",
       });
     }
 
-    const merchantTransactionId = uniqid(); // Unique ID for this payment
-    const payEndpoint = "/pg/v1/pay";
-
-     await pool.query(
-      `INSERT INTO tbl_student_course (student_id, course_id, purchase_date, transaction_id, status) 
-       VALUES ($1, $2, CURRENT_DATE, $3, 'PENDING')`,
-      [student_id, course_id, merchantTransactionId]
+    // 1️⃣ Fetch student details from tbl_student
+    const studentResult = await pool.query(
+      `SELECT first_name, last_name, email, phnumber 
+       FROM tbl_student 
+       WHERE student_id = $1`,
+      [student_id]
     );
 
+    if (studentResult.rows.length === 0) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: "Student not found",
+      });
+    }
+
+    const student = studentResult.rows[0];
+
+    // 2️⃣ Generate unique transaction/order ID
+    const orderId = uniqid("CF_");
+
+    // 3️⃣ Insert initial record into tbl_student_course
+    await pool.query(
+      `INSERT INTO tbl_student_course 
+       (student_id, course_id, purchase_date, transaction_id, status) 
+       VALUES ($1, $2, CURRENT_DATE, $3, 'PENDING')`,
+      [student_id, course_id, orderId]
+    );
+
+    // 4️⃣ Build Cashfree order payload
     const payload = {
-      merchantId: MERCHANT_ID,
-      merchantTransactionId: merchantTransactionId,
-      merchantUserId: "MUID" + student_id,
-      amount: staticamt * 100, // convert ₹ to paise
-      redirectUrl: `https://api.skilledition.in/studentcourse/payment/redirect/${merchantTransactionId}`,
-      redirectMode: "REDIRECT",
-      callbackUrl: `https://api.skilledition.in/payment/callback`,
-      mobileNumber: "9951196669",
-      paymentInstrument: { type: "PAY_PAGE" },
+      order_id: orderId,
+      order_amount: 1.00,
+      order_currency: "INR",
+      customer_details: {
+        customer_id: `STU_${student_id}`,
+        customer_email: student.email,
+        customer_phone: student.phnumber
+      },
+      order_meta: {
+        return_url: `https://api.skilledition.in/studentcourse/payment/redirect/${orderId}`,
+        notify_url: `https://api.skilledition.in/payment/callback`
+      }
     };
 
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-    const stringToSign = base64Payload + payEndpoint + SALT_KEY;
-    const xVerify = crypto
-      .createHash("sha256")
-      .update(stringToSign)
-      .digest("hex") + "###" + SALT_INDEX;
+    // 5️⃣ Cashfree API headers
+    const headers = {
+      accept: "application/json",
+      "content-type": "application/json",
+      "x-client-id": process.env.CASHFREE_APP_ID,
+      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+      "x-api-version": "2022-09-01"
+    };
 
-    const response = await axios.post(
-      `${PHONEPE_HOST_URL}${payEndpoint}`,
-      { request: base64Payload },
-      {
-        headers: {
-          accept: "application/json",
-          "Content-Type": "application/json",
-          "X-VERIFY": xVerify,
-          "X-MERCHANT-ID": MERCHANT_ID,
-        },
-      }
-    );
+    // 6️⃣ Create order in Cashfree
+    const response = await axios.post(process.env.CASHFREE_BASE_URL, payload, { headers });
 
-    console.log("✅ PhonePe Response:", response.data);
-    const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
-    return res.json({ 
-       statusCode: 200,
-      paymentUrl: redirectUrl,
-       transactionId: merchantTransactionId,
+    console.log("✅ Cashfree Response:", response.data);
+
+    // 7️⃣ Return payment URL to frontend
+    return res.json({
+      statusCode: 200,
+      paymentUrl: response.data.payment_link,
+      transactionId: orderId,
+      studentName: `${student.first_name} ${student.last_name}`
     });
+
   } catch (error) {
     console.error("❌ Error in initiatePayment:", error.response?.data || error.message);
     return res.status(500).json({ error: error.response?.data || error.message });
   }
 };
+
 
 exports.buyStudentCourse = async (req, res) => {
   try {
@@ -122,37 +140,30 @@ exports.buyStudentCourse = async (req, res) => {
 
 exports.paymentCallback = async (req, res) => {
   try {
-    console.log("📥 PhonePe Callback Data:", req.body);
+    console.log("📥 Cashfree Callback:", req.body);
 
-    const { merchantTransactionId } = req.body.data;
-    const status = req.body.code; // Check status code
+    const { order_id, order_status } = req.body.data;
 
-    if (status === "PAYMENT_SUCCESS") {
-      // ✅ Payment successful
-      // Update your DB: mark order as paid
+    if (order_status === "PAID") {
       await pool.query(
-        `UPDATE tbl_student_course 
-         SET status = 'SUCCESS'
-         WHERE transaction_id = $1`,
-        [merchantTransactionId]
+        `UPDATE tbl_student_course SET status = 'SUCCESS' WHERE transaction_id = $1`,
+        [order_id]
       );
     } else {
-      // ❌ Payment failed
       await pool.query(
-        `UPDATE tbl_student_course 
-         SET status = 'FAILED'
-         WHERE transaction_id = $1`,
-        [merchantTransactionId]
+        `UPDATE tbl_student_course SET status = 'FAILED' WHERE transaction_id = $1`,
+        [order_id]
       );
     }
 
-    // Always respond with success message to PhonePe
+    // ✅ Always respond with 200 to acknowledge callback
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("❌ Error in paymentCallback:", error);
     return res.status(500).json({ success: false });
   }
 };
+
 
 
  
