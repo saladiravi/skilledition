@@ -88,7 +88,7 @@ exports.initiatePayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error in initiatePayment:", error.response?.data || error.message);
+   
     return res.status(500).json({ error: error.response?.data || error.message });
   }
 };
