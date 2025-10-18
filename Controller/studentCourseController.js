@@ -82,7 +82,7 @@ exports.initiatePayment = async (req, res) => {
     // 7️⃣ Return payment URL to frontend
     return res.json({
       statusCode: 200,
-      paymentUrl: response.data.payment_link,
+      paymentSessionId: response.data.payment_session_id,
       transactionId: orderId,
       studentName: `${student.first_name} ${student.last_name}`
     });
