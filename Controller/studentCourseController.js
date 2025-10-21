@@ -1,12 +1,12 @@
+require('dotenv').config();
 const pool= require('../db/db');
 const crypto = require("crypto");
 const axios = require("axios");
 const uniqid = require("uniqid");
-const dotenv = require("dotenv");
+
 const { Cashfree, CFEnvironment } = require("cashfree-pg");
  
 
-dotenv.config();
 
 console.log("CASHFREE_APP_ID:", process.env.CASHFREE_APP_ID);
 console.log("CASHFREE_SECRET_KEY:", process.env.CASHFREE_SECRET_KEY);
