@@ -1,5 +1,8 @@
 
 require('dotenv').config();
+console.log("✅ DATABASE_URL:", process.env.DATABASE_URL);
+console.log("✅ CASHFREE_APP_ID:", process.env.CASHFREE_APP_ID);
+console.log("✅ CASHFREE_SECRET_KEY:", process.env.CASHFREE_SECRET_KEY);
 const express = require("express");
 const path = require("path");  
 const cors=require('cors');
