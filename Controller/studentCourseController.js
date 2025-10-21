@@ -1,27 +1,33 @@
 const pool= require('../db/db');
 const crypto = require("crypto");
 const axios = require("axios");
-require("dotenv").config();
 const uniqid = require("uniqid");
+const dotenv = require("dotenv");
+const { Cashfree, CFEnvironment } = require("cashfree-pg");
+ 
 
+dotenv.config();
 
-const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID
-const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY
-const CASHFREE_ORDER_URL = `${process.env.CASHFREE_BASE_URL}/orders`;
+const cashfree = new Cashfree(
+  CFEnvironment.PRODUCTION, // change to CFEnvironment.SANDBOX for testing
+  process.env.CASHFREE_APP_ID,
+  process.env.CASHFREE_SECRET_KEY
+);
+
 
  
 
 exports.initiatePayment = async (req, res) => {
   try {
     const { student_id, course_id } = req.body;
-    if (!student_id || !course_id ) {
+    if (!student_id || !course_id) {
       return res.status(400).json({
         statusCode: 400,
-        message: "student_id, course_id, and amount are required",
+        message: "student_id and course_id are required",
       });
     }
 
-    // 1️⃣ Fetch student details from tbl_student
+    // 1️⃣ Fetch student details
     const studentResult = await pool.query(
       `SELECT first_name, last_name, email, phnumber 
        FROM tbl_student 
@@ -38,10 +44,10 @@ exports.initiatePayment = async (req, res) => {
 
     const student = studentResult.rows[0];
 
-    // 2️⃣ Generate unique transaction/order ID
+    // 2️⃣ Create a unique order ID
     const orderId = uniqid("CF_");
 
-    // 3️⃣ Insert initial record into tbl_student_course
+    // 3️⃣ Save initial order in your DB
     await pool.query(
       `INSERT INTO tbl_student_course 
        (student_id, course_id, purchase_date, transaction_id, status) 
@@ -49,47 +55,42 @@ exports.initiatePayment = async (req, res) => {
       [student_id, course_id, orderId]
     );
 
-    // 4️⃣ Build Cashfree order payload
-    const payload = {
-      order_id: orderId,
-      order_amount: 1.00,
+    // 4️⃣ Prepare Cashfree order request
+    const request = {
+      order_amount: 1.0, // set dynamic course price if available
       order_currency: "INR",
+      order_id: orderId,
       customer_details: {
         customer_id: `STU_${student_id}`,
         customer_email: student.email,
-        customer_phone: student.phnumber
+        customer_phone: student.phnumber,
       },
       order_meta: {
         return_url: `https://api.skilledition.in/studentcourse/payment/redirect/${orderId}`,
-        notify_url: `https://api.skilledition.in/payment/callback`
-      }
+        notify_url: `https://api.skilledition.in/payment/callback`,
+        payment_methods: "cc,dc,upi", // optional
+      },
     };
 
-    // 5️⃣ Cashfree API headers
-    const headers = {
-      accept: "application/json",
-      "content-type": "application/json",
-      "x-client-id": process.env.CASHFREE_APP_ID,
-      "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-      "x-api-version": "2025-01-01"
-    };
+    // 5️⃣ Create order using Cashfree SDK
+    const response = await cashfree.PGCreateOrder(request);
 
-    // 6️⃣ Create order in Cashfree
-    const response = await axios.post(CASHFREE_ORDER_URL, payload, { headers });
+    console.log("✅ Cashfree Order Created:", response.data);
 
-    console.log("✅ Cashfree Response:", response.data);
-
-    // 7️⃣ Return payment URL to frontend
+    // 6️⃣ Return payment details to frontend
     return res.json({
       statusCode: 200,
       paymentSessionId: response.data.payment_session_id,
-      transactionId: orderId,
-      studentName: `${student.first_name} ${student.last_name}`
+      orderId: response.data.order_id,
+      studentName: `${student.first_name} ${student.last_name}`,
+      paymentLink: response.data.payment_link, // optional
     });
-
   } catch (error) {
-   
-    return res.status(500).json({ error: error.response?.data || error.message });
+    console.error("❌ Error in initiatePayment:", error.response?.data || error.message);
+    return res.status(500).json({
+      statusCode: 500,
+      error: error.response?.data || error.message,
+    });
   }
 };
 
