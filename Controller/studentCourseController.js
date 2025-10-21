@@ -8,6 +8,9 @@ const { Cashfree, CFEnvironment } = require("cashfree-pg");
 
 dotenv.config();
 
+console.log("CASHFREE_APP_ID:", process.env.CASHFREE_APP_ID);
+console.log("CASHFREE_SECRET_KEY:", process.env.CASHFREE_SECRET_KEY);
+
 const cashfree = new Cashfree(
   CFEnvironment.PRODUCTION, // change to CFEnvironment.SANDBOX for testing
   process.env.CASHFREE_APP_ID,
@@ -15,6 +18,11 @@ const cashfree = new Cashfree(
 );
 
 
+if (cashfree) {
+  console.log("✅ Cashfree SDK initialized successfully");
+} else {
+  console.log("❌ Cashfree SDK failed to initialize");
+}
  
 
 exports.initiatePayment = async (req, res) => {
