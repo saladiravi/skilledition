@@ -65,11 +65,12 @@ exports.initiatePayment = async (req, res) => {
         customer_email: student.email,
         customer_phone: student.phnumber,
       },
-     order_meta: {
-        return_url: `https://skilledition.in/payment/success/${orderId}`, // frontend page
-        notify_url: `https://api.skilledition.in/studentcourse/payment/callback`, // backend endpoint
-        payment_methods: "cc,dc,upi",
-      }
+    order_meta: {
+      return_url: `https://skilledition.in/payment/success/${orderId}`,
+      notify_url: `https://skilledition.in/studentcourse/payment/callback`,
+      payment_methods: "cc,dc,upi"
+    }
+
 
     };
 
