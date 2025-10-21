@@ -65,11 +65,12 @@ exports.initiatePayment = async (req, res) => {
         customer_email: student.email,
         customer_phone: student.phnumber,
       },
-      order_meta: {
-        return_url: `https://api.skilledition.in/studentcourse/payment/redirect/${orderId}`,
-        notify_url: `https://api.skilledition.in/payment/callback`,
-        payment_methods: "cc,dc,upi", // optional
-      },
+     order_meta: {
+        return_url: `https://skilledition.in/payment/success/${orderId}`, // frontend page
+        notify_url: `https://api.skilledition.in/studentcourse/payment/callback`, // backend endpoint
+        payment_methods: "cc,dc,upi",
+      }
+
     };
 
     // 5️⃣ Create order using Cashfree SDK
